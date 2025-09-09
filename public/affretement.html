@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=210mm, initial-scale=1.0" name="viewport"/>
+  <title>Confirmation d'Affrètement</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body {
+      width: 210mm; height: 297mm; margin: 0; padding: 0;
+      background: #fff; color: #000;
+      font-family: Arial, sans-serif; font-size: 10px; box-sizing: border-box;
+    }
+    body {
+      width: 210mm; height: 297mm; margin: 0; padding: 0;
+      position: relative; overflow: hidden;
+    }
+    .page {
+      width: 210mm; height: 297mm; min-height: 297mm; max-height: 297mm;
+      margin: 0; padding: 30px 0 0 0;
+      position: relative; box-sizing: border-box;
+      display: flex; flex-direction: column; justify-content: flex-start;
+    }
+    .corner-deco {
+      position: absolute; z-index: 0; pointer-events: none;
+    }
+    .corner-deco.top-left { top: 0; left: 0; height: 80px; }
+    .corner-deco.bottom-right { bottom: 0; right: 0; height: 80px; }
+    .header-row {
+      display: flex; flex-direction: row; justify-content: space-between; align-items: flex-start;
+      margin: 0 0 2mm 0; padding: 0 8mm 0 8mm; position: relative; z-index: 2;
+    }
+    .header-col { width: 32%; font-size: 10px; line-height: 1.3; }
+    .header-col.left { text-align: left; color: #222; position: relative; }
+    .header-col.left .name { font-weight: bold; color: #0A7B5E; font-size: 11px; margin-bottom: 1mm; }
+    .header-col.center {
+      text-align: center; padding-top: 2mm; display: flex; flex-direction: column; align-items: center;
+      justify-content: flex-start; width: 36%;
+    }
+    .header-col.right { text-align: right; font-size: 10px; color: #222; padding-top: 1mm; }
+    .logo-mzn {
+      height: 70px;
+      margin-bottom: 2mm;
+      margin-top: 10px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .triangle-vert {
+      position: absolute; top: 0; left: 0; width: 38px; height: 38px; z-index: 1;
+      background: none;
+    }
+    .title-block { text-align: center; margin: 0 0 1mm 0; padding: 0; }
+    .title-block .title {
+      font-size: 16px; font-weight: bold; margin-bottom: 0.5mm; letter-spacing: 0.5px; color: #222;
+      margin-top: 8mm;
+    }
+    .title-block .subtitle {
+      font-size: 10px; font-style: italic; font-weight: bold; margin-bottom: 0.5mm; color: #222;
+      display: flex; justify-content: center; align-items: center; gap: 10px;
+    }
+    .warning-bar {
+      width: 100%; text-align: center; color: #fff; background: #d32f2f;
+      font-weight: bold; font-size: 10px; padding: 1.5mm 0; margin-bottom: 2mm; letter-spacing: 0.2px;
+    }
+    .adr-table {
+      width: calc(100% - 16mm); margin: 0 auto 2mm auto; border-collapse: collapse; font-size: 10px;
+    }
+    .adr-table td {
+      border: 1px solid #222; padding: 2mm 2mm 2mm 2mm; vertical-align: top; width: 50%; height: 26mm;
+    }
+    .adr-table strong { font-weight: bold; }
+    .marchandise-block {
+      width: calc(100% - 16mm); margin: 0 auto 2mm auto; background: #8BC0B1;
+      border-radius: 2px; padding: 0.5mm 2mm 0.5mm 2mm; position: relative; min-height: 48mm; box-sizing: border-box;
+    }
+    .marchandise-table {
+      width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 0.5mm;
+    }
+    .marchandise-table th {
+      background: #4e9e8e; color: #222; font-weight: bold; border: 1px solid #222;
+      padding: 1mm 0.5mm; font-size: 10px;
+    }
+    .marchandise-table td {
+      border: 1px solid #222; padding: 1mm 0.5mm; text-align: center; font-size: 10px; height: 7mm;
+    }
+    .vehicle-type {
+      margin-top: 4mm;
+      padding: 2mm;
+      border: 1px solid #222;
+      background: #fff;
+      text-align: center;
+      font-weight: bold;
+    }
+    .consignes-block { text-align: center; margin: 0.5mm 0 0 0; }
+    .consignes-block .consignes { color: #0A7B5E; font-weight: bold; font-size: 10px; margin-bottom: 0.5mm; }
+    .consignes-block .bien-arrimer { color: #d32f2f; font-weight: bold; font-size: 10px; margin-top: 0; }
+    .consignes-block .instructions { color: #222; font-size: 10px; margin-top: 2mm; white-space: pre-wrap; }
+    .tarif-row {
+      width: calc(100% - 16mm); margin: 0 auto 2mm auto; display: flex; flex-direction: row;
+      justify-content: space-between; align-items: flex-start; border: 1px solid #222; border-radius: 2px;
+      font-size: 10px; padding: 1.5mm 2mm; background: #fff; box-sizing: border-box;
+    }
+    .tarif-row .left { width: 60%; text-align: left; }
+    .tarif-row .right { width: 40%; text-align: right; }
+    .tarif-row .prix { font-size: 11px; font-weight: bold; color: #000; margin-right: 2mm; }
+    .tarif-row .taxe { font-size: 9px; font-style: italic; color: #222; }
+    .tarif-row .mode { font-size: 10px; font-weight: normal; }
+    .tarif-row .prix-ht-label {
+      font-weight: bold;
+      display: inline-block;
+      margin-right: 8mm;
+    }
+    .tarif-row .prix-ht-value {
+      display: inline-block;
+      margin-left: 8mm;
+    }
+    .footer-block {
+      text-align: left;
+      padding-left: 14.17px;
+      margin-bottom: 1mm;
+      font-size: 8px;
+      word-break: break-word;
+    }
+    .footer-block p {
+      margin: 0 0 2px 0;
+      padding: 0;
+    }
+    .photo-note { color: #d32f2f; font-weight: bold; font-size: 10px; }
+    .facturation { font-size: 10px; font-weight: bold; color: #222; }
+    .legal { font-size: 9.5px; color: #222; }
+    .legal strong { color: #d32f2f; font-weight: bold; }
+    .contact { font-size: 10px; color: #222; }
+    .signature-block {
+      position: absolute;
+      bottom: 113.4px;
+      left: 113.4px;
+      font-size: 10px;
+      color: #000;
+      font-weight: bold;
+      text-align: left;
+      line-height: 1.3;
+      background: none;
+      border: none;
+      margin: 0;
+      padding: 0;
+      width: auto;
+      z-index: 10;
+    }
+    .page > * { max-width: 100%; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <svg class="triangle-vert" viewBox="0 0 38 38">
+      <polygon points="0,0 38,0 0,38" style="fill:#8BC0B1;" />
+    </svg>
+    <img src="/image003.gif" alt="coin haut gauche" class="corner-deco top-left" />
+    <img src="/image004.gif" alt="coin bas droite" class="corner-deco bottom-right" />
+
+    <div class="header-row">
+      <div class="header-col left">
+        <div class="name">MZN TRANSPORT</div>
+        12 RUE DES AIRES<br/>
+        34430 SAINT JEAN DE VÉDAS<br/>
+        FR48911875672<br/>
+        <strong>{{nom_interlocuteur}}</strong><br/>
+        07 81 65 49 21
+      </div>
+      <div class="header-col center">
+        <img src="/logo_mzm_transport_cleaned_v2.png?v=1" alt="Logo MZN" class="logo-mzn" crossorigin="anonymous" />
+      </div>
+      <div class="header-col right">
+        Transporteur : {{transporteur}}<br/>
+        Tél : {{tel_transporteur}}<br/>
+        À l'intention de : {{contact_fournisseur}}<br/>
+        Date : {{date}}
+      </div>
+    </div>
+
+    <div class="title-block">
+      <div class="title">CONFIRMATION D'AFFRÈTEMENT</div>
+      <div class="subtitle">
+        Référence à rappeler sur facture
+        <span style="font-weight: bold; color: #000;">N° {{number}}</span>
+      </div>
+    </div>
+
+    <div class="warning-bar">
+      IL EST FORMELLEMENT INTERDIT DE MONTRER CETTE COMMANDE À L'EXPÉDITEUR ET AU DESTINATAIRE
+    </div>
+
+    <table class="adr-table">
+      <tr>
+        <td>
+          <strong>Date /heure de chargement</strong><br/>
+          {{date_heure_chargement}}<br/><br/>
+          <strong>Adresse de chargement</strong><br/>
+          {{adresse_chargement}}<br/><br/>
+          <strong>Contact</strong><br/>
+          {{contact_chargement}}
+        </td>
+        <td>
+          <strong>Date /heure de livraison</strong><br/>
+          {{date_heure_livraison}}<br/><br/>
+          <strong>Adresse de livraison</strong><br/>
+          {{adresse_livraison}}<br/><br/>
+          <strong>Contact</strong><br/>
+          {{contact_livraison}}
+        </td>
+      </tr>
+    </table>
+
+    <div class="marchandise-block">
+      <table class="marchandise-table">
+        <thead>
+          <tr>
+            <th>Marchandise</th>
+            <th>Volume</th>
+            <th>Poids</th>
+            <th>Metre</th>
+            <th>Échange</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{marchandise}}</td>
+            <td>{{volume}}</td>
+            <td>{{poids}}</td>
+            <td>{{metre}}</td>
+            <td>{{echange}}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="vehicle-type">
+        Type de véhicule : {{vehicle_type}} {{tailgate}}
+      </div>
+
+      <div class="consignes-block">
+        <div class="consignes">CONSIGNES</div>
+        <div class="bien-arrimer">BIEN ARRIMER LA MARCHANDISE</div>
+        <div class="instructions">{{instructions}}</div>
+      </div>
+    </div>
+
+    <div class="tarif-row">
+      <div class="left">
+        <div class="prix-ht-label"><strong>Prix de transport</strong></div>
+        <span class="prix-ht-value">{{price}} € HT</span>
+        <span class="taxe">*taxe gasoil inclus*</span>
+      </div>
+      <div class="right">
+        <div><strong>Mode de règlement</strong></div>
+        <span class="mode">{{mode_reglement}}</span>
+      </div>
+    </div>
+
+    <div class="footer-block photo-note">
+      <p>PRISE DE PHOTO IMPERATIVE AU CHARGEMENT ET DECHARGEMENT</p>
+    </div>
+    <div class="footer-block facturation">
+      <p>FACTURATION: direction@mzntransport.fr</p>
+      <p>Merci de rappeler le numéro d'affrètement impérativement sur vos factures + CMR</p>
+    </div>
+    <div class="footer-block legal">
+      <p>En cas de problème ou retard survenant lors du transport ou des opérations de chargement et déchargement, nous contacter impérativement afin d'en informer nos clients dans les meilleurs délais.</p>
+      <p>- Les documents de transport émargés doivent impérativement nous parvenir avec la facture.</p>
+      <p><strong>- Tout réaffrètement est formellement interdit sauf autorisation expresse et préalable de notre part.</strong></p>
+      <p>- Les instructions de ce fax doivent être suivies dans le strict respect de la règlementation sociale (Temps de conduite et de repos) et routière (Limitation de vitesse).</p>
+      <p>- L'acceptation de ce contrat de transport implique l'engagement des moyens nécessaires à sa bonne exécution.</p>
+      <p>- Le transporteur reconnaît que le prix déterminé par les parties couvre ses coûts de revient tels que définis par l'article 3 de la loi 92-1445 du 31 décembre 1992.</p>
+      <p>- Le transporteur certifie avoir souscrit une assurance tant en responsabilité civile et professionnelle que contractuelle, et être inscrit au registre des transporteurs.</p>
+    </div>
+    <div class="footer-block contact">
+      <p><strong>NOS CONTACTS :</strong></p>
+      <p>Eliot : 07 81 30 59 87 Commerce / exploitation : exploitation@mzntransport.fr</p>
+      <p>Orlane : 07 81 65 49 21 Assistance direction : contact@mzntransport.fr</p>
+      <p>Salome : 06 89 28 43 07 Direction / Comptabilité : direction@mzntransport.fr</p>
+    </div>
+    <div class="signature-block">
+      <div class="bon">BON POUR ACCORD</div>
+      <div>Date et cachet commercial</div>
+      <div>Nom de l'interlocuteur</div>
+    </div>
+  </div>
+</body>
+</html>

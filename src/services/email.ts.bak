@@ -1,0 +1,63 @@
+import type { TransportSlip, FreightSlip } from '../types';
+
+interface SendEmailParams {
+  to: string;
+  subject: string;
+  body: string;
+  attachments: Array<File | { name: string; content: Blob; contentType: string }>;
+}
+
+export async function sendEmail({ to, subject, body, attachments }: SendEmailParams): Promise<void> {
+  // Convert files to base64
+  const attachmentPromises = attachments.map(async (file) => {
+  const buffer = await file.content.arrayBuffer();
+
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  return {
+    filename: file.name,
+    content: base64,
+    contentType: file.contentType
+  };
+});
+
+
+  const processedAttachments = await Promise.all(attachmentPromises);
+
+  const response = await fetch('http://localhost:3000/api/send-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      to,
+      subject,
+      body,
+      attachments: processedAttachments
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error sending email');
+  }
+}
+
+export async function testSmtpConnection(config: {
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_pass: string;
+}): Promise<void> {
+  const response = await fetch('http://localhost:3000/api/test-smtp', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(config)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'SMTP connection test failed');
+  }
+}

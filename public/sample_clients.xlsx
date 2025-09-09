@@ -1,0 +1,297 @@
+PK    !             [Content_Types].xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>
+  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
+  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
+</Types>
+PK    !             xl/workbook.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets>
+    <sheet name="Clients" sheetId="1" r:id="rId1"/>
+  </sheets>
+</workbook>
+PK    !             xl/worksheets/sheet1.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheetData>
+    <row>
+      <c t="str"><v>LÉGENDE: Ce fichier est un modèle pour l'import de clients. La première ligne (celle-ci) est ignorée lors de l'import.</v></c>
+    </row>
+    <row>
+      <c t="str"><v>nom</v></c>
+      <c t="str"><v>email</v></c>
+      <c t="str"><v>telephone</v></c>
+      <c t="str"><v>adresse</v></c>
+      <c t="str"><v>code_postal</v></c>
+      <c t="str"><v>ville</v></c>
+      <c t="str"><v>pays</v></c>
+      <c t="str"><v>siret</v></c>
+      <c t="str"><v>numero_tva</v></c>
+      <c t="str"><v>comptable_prenom</v></c>
+      <c t="str"><v>comptable_nom</v></c>
+      <c t="str"><v>comptable_email</v></c>
+      <c t="str"><v>comptable_telephone</v></c>
+      <c t="str"><v>preference_facturation</v></c>
+      <c t="str"><v>tva_rate</v></c>
+      <c t="str"><v>numero_commande_requis</v></c>
+      <c t="str"><v>horaires_lundi_de</v></c>
+      <c t="str"><v>horaires_lundi_a</v></c>
+      <c t="str"><v>lundi_ferme</v></c>
+      <c t="str"><v>horaires_mardi_de</v></c>
+      <c t="str"><v>horaires_mardi_a</v></c>
+      <c t="str"><v>mardi_ferme</v></c>
+      <c t="str"><v>horaires_mercredi_de</v></c>
+      <c t="str"><v>horaires_mercredi_a</v></c>
+      <c t="str"><v>mercredi_ferme</v></c>
+      <c t="str"><v>horaires_jeudi_de</v></c>
+      <c t="str"><v>horaires_jeudi_a</v></c>
+      <c t="str"><v>jeudi_ferme</v></c>
+      <c t="str"><v>horaires_vendredi_de</v></c>
+      <c t="str"><v>horaires_vendredi_a</v></c>
+      <c t="str"><v>vendredi_ferme</v></c>
+      <c t="str"><v>horaires_samedi_de</v></c>
+      <c t="str"><v>horaires_samedi_a</v></c>
+      <c t="str"><v>samedi_ferme</v></c>
+      <c t="str"><v>horaires_dimanche_de</v></c>
+      <c t="str"><v>horaires_dimanche_a</v></c>
+      <c t="str"><v>dimanche_ferme</v></c>
+    </row>
+    <row>
+      <c t="str"><v>Entreprise Example</v></c>
+      <c t="str"><v>contact@example.com</v></c>
+      <c t="str"><v>0123456789</v></c>
+      <c t="str"><v>123 Rue Example</v></c>
+      <c t="str"><v>75001</v></c>
+      <c t="str"><v>Paris</v></c>
+      <c t="str"><v>France</v></c>
+      <c t="str"><v>12345678900012</v></c>
+      <c t="str"><v>FR12345678900</v></c>
+      <c t="str"><v>Marie</v></c>
+      <c t="str"><v>Martin</v></c>
+      <c t="str"><v>comptabilite@example.com</v></c>
+      <c t="str"><v>0123456789</v></c>
+      <c t="str"><v>mensuelle</v></c>
+      <c t="str"><v>20</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>12:00</v></c>
+      <c t="str"><v>false</v></c>
+      <c t="str"><v>09:00</v></c>
+      <c t="str"><v>18:00</v></c>
+      <c t="str"><v>true</v></c>
+    </row>
+  </sheetData>
+</worksheet>
+PK    !             xl/styles.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="1">
+    <font>
+      <sz val="11"/>
+      <name val="Calibri"/>
+      <family val="2"/>
+    </font>
+  </fonts>
+  <fills count="2">
+    <fill>
+      <patternFill patternType="none"/>
+    </fill>
+    <fill>
+      <patternFill patternType="gray125"/>
+    </fill>
+  </fills>
+  <borders count="1">
+    <border>
+      <left/>
+      <right/>
+      <top/>
+      <bottom/>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+  </cellXfs>
+</styleSheet>
+PK    !             xl/theme/theme1.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">
+  <a:themeElements>
+    <a:clrScheme name="Office">
+      <a:dk1>
+        <a:sysClr val="windowText" lastClr="000000"/>
+      </a:dk1>
+      <a:lt1>
+        <a:sysClr val="window" lastClr="FFFFFF"/>
+      </a:lt1>
+      <a:dk2>
+        <a:srgbClr val="1F497D"/>
+      </a:dk2>
+      <a:lt2>
+        <a:srgbClr val="EEECE1"/>
+      </a:lt2>
+      <a:accent1>
+        <a:srgbClr val="4F81BD"/>
+      </a:accent1>
+      <a:accent2>
+        <a:srgbClr val="C0504D"/>
+      </a:accent2>
+      <a:accent3>
+        <a:srgbClr val="9BBB59"/>
+      </a:accent3>
+      <a:accent4>
+        <a:srgbClr val="8064A2"/>
+      </a:accent4>
+      <a:accent5>
+        <a:srgbClr val="4BACC6"/>
+      </a:accent5>
+      <a:accent6>
+        <a:srgbClr val="F79646"/>
+      </a:accent6>
+      <a:hlink>
+        <a:srgbClr val="0000FF"/>
+      </a:hlink>
+      <a:folHlink>
+        <a:srgbClr val="800080"/>
+      </a:folHlink>
+    </a:clrScheme>
+    <a:fontScheme name="Office">
+      <a:majorFont>
+        <a:latin typeface="Cambria"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:majorFont>
+      <a:minorFont>
+        <a:latin typeface="Calibri"/>
+        <a:ea typeface=""/>
+        <a:cs typeface=""/>
+      </a:minorFont>
+    </a:fontScheme>
+    <a:fmtScheme name="Office">
+      <a:fillStyleLst>
+        <a:solidFill>
+          <a:schemeClr val="phClr"/>
+        </a:solidFill>
+        <a:gradFill rotWithShape="1">
+          <a:gsLst>
+            <a:gs pos="0">
+              <a:schemeClr val="phClr">
+                <a:tint val="50000"/>
+                <a:satMod val="300000"/>
+              </a:schemeClr>
+            </a:gs>
+            <a:gs pos="35000">
+              <a:schemeClr val="phClr">
+                <a:tint val="37000"/>
+                <a:satMod val="300000"/>
+              </a:schemeClr>
+            </a:gs>
+            <a:gs pos="100000">
+              <a:schemeClr val="phClr">
+                <a:tint val="15000"/>
+                <a:satMod val="350000"/>
+              </a:schemeClr>
+            </a:gs>
+          </a:gsLst>
+          <a:lin ang="16200000" scaled="1"/>
+        </a:gradFill>
+      </a:fillStyleLst>
+      <a:lnStyleLst>
+        <a:ln w="9525" cap="flat" cmpd="sng" algn="ctr">
+          <a:solidFill>
+            <a:schemeClr val="phClr">
+              <a:shade val="95000"/>
+              <a:satMod val="105000"/>
+            </a:schemeClr>
+          </a:solidFill>
+          <a:prstDash val="solid"/>
+        </a:ln>
+      </a:lnStyleLst>
+      <a:effectStyleLst>
+        <a:effectStyle>
+          <a:effectLst>
+            <a:outerShdw blurRad="40000" dist="20000" dir="5400000" rotWithShape="0">
+              <a:srgbClr val="000000">
+                <a:alpha val="38000"/>
+              </a:srgbClr>
+            </a:outerShdw>
+          </a:effectLst>
+        </a:effectStyle>
+      </a:effectStyleLst>
+      <a:bgFillStyleLst>
+        <a:solidFill>
+          <a:schemeClr val="phClr"/>
+        </a:solidFill>
+      </a:bgFillStyleLst>
+    </a:fmtScheme>
+  </a:themeElements>
+</a:theme>
+PK    !             xl/sharedStrings.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="1" uniqueCount="1">
+  <si>
+    <t>Sample</t>
+  </si>
+</sst>
+PK    !             docProps/app.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
+  <Application>Microsoft Excel</Application>
+  <DocSecurity>0</DocSecurity>
+  <ScaleCrop>false</ScaleCrop>
+  <HeadingPairs>
+    <vt:vector size="2" baseType="variant">
+      <vt:variant>
+        <vt:lpstr>Worksheets</vt:lpstr>
+      </vt:variant>
+      <vt:variant>
+        <vt:i4>1</vt:i4>
+      </vt:variant>
+    </vt:vector>
+  </HeadingPairs>
+  <TitlesOfParts>
+    <vt:vector size="1" baseType="lpstr">
+      <vt:lpstr>Clients</vt:lpstr>
+    </vt:vector>
+  </TitlesOfParts>
+</Properties>
+PK    !             docProps/core.xml<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <dc:creator>MZN Transport</dc:creator>
+  <cp:lastModifiedBy>MZN Transport</cp:lastModifiedBy>
+  <dcterms:created xsi:type="dcterms:W3CDTF">2024-06-20T00:00:00Z</dcterms:created>
+  <dcterms:modified xsi:type="dcterms:W3CDTF">2024-06-20T00:00:00Z</dcterms:modified>
+</cp:coreProperties>
+PK    !             xl/_rels/workbook.xml.rels<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/>
+</Relationships>
+PK    !             _rels/.rels<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
+</Relationships>
+PK    !

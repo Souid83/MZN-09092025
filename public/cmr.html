@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=210mm, initial-scale=1.0" name="viewport"/>
+  <title>Document de Transport CMR</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body {
+      width: 210mm; height: 297mm; margin: 0; padding: 0;
+      background: #fff; color: #000;
+      font-family: Arial, sans-serif; font-size: 10px; box-sizing: border-box;
+    }
+    body {
+      width: 210mm; height: 297mm; margin: 0; padding: 0;
+      position: relative; overflow: hidden;
+    }
+    .page {
+      width: 210mm; height: 297mm; min-height: 297mm; max-height: 297mm;
+      margin: 0; padding: 10px 0 0 0;
+      position: relative; box-sizing: border-box;
+      display: flex; flex-direction: column; justify-content: flex-start;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid #000;
+    }
+    .header-left, .header-center, .header-right {
+      width: 33%;
+    }
+    .header-center {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-right {
+      text-align: right;
+    }
+    .title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .reference {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 20px;
+      background-color: #f0f0f0;
+      margin-bottom: 10px;
+    }
+    .addresses {
+      display: flex;
+      margin: 0 10px 10px 10px;
+    }
+    .address-box {
+      width: 50%;
+      border: 1px solid #000;
+      padding: 10px;
+      margin: 0 5px;
+    }
+    .address-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .goods-info {
+      margin: 0 10px 10px 10px;
+      border: 1px solid #000;
+      padding: 10px;
+    }
+    .goods-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .goods-details {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .goods-detail {
+      width: 33%;
+      margin-bottom: 5px;
+    }
+    .vehicle-type {
+      margin-top: 10px;
+      padding: 5px;
+      border: 1px solid #000;
+      text-align: center;
+      font-weight: bold;
+    }
+    .instructions {
+      margin: 0 10px 10px 10px;
+      border: 1px solid #000;
+      padding: 10px;
+    }
+    .instructions-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .exchange-pallets {
+      margin: 0 10px 10px 10px;
+      border: 1px solid #000;
+      padding: 10px;
+    }
+    .exchange-title {
+      font-weight: bold;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .exchange-options {
+      display: flex;
+      justify-content: space-around;
+    }
+    .exchange-option {
+      display: flex;
+      align-items: center;
+    }
+    .checkbox {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 1px solid #000;
+      margin-right: 5px;
+    }
+    .reservations {
+      display: flex;
+      margin: 0 10px 10px 10px;
+    }
+    .reservation-box {
+      width: 50%;
+      border: 1px solid #000;
+      padding: 10px;
+      margin: 0 5px;
+    }
+    .reservation-title {
+      font-weight: bold;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .signatures {
+      display: flex;
+      margin: 0 10px 10px 10px;
+    }
+    .signature-box {
+      width: 33.33%;
+      border: 1px solid #000;
+      padding: 10px;
+      margin: 0 5px;
+      height: 80px;
+    }
+    .signature-title {
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .footer {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      text-align: center;
+      font-size: 8px;
+    }
+    .logo {
+      max-height: 60px;
+      margin-bottom: 5px;
+    }
+    .company-name {
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .checked {
+      background-color: #ccc;
+    }
+    .distance-info {
+      margin: 0 10px 10px 10px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border: 1px solid #000;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="company-name">MZN TRANSPORT</div>
+        <div>12 RUE DES AIRES</div>
+        <div>34430 SAINT JEAN DE VÉDAS</div>
+        <div>FR48911875672</div>
+        <div>{{nom_interlocuteur}}</div>
+        <div>07 81 65 49 21</div>
+      </div>
+      <div class="header-center">
+        <img src="/logo_mzm_transport_cleaned_v2.png" alt="Logo MZN" class="logo" crossorigin="anonymous" />
+      </div>
+      <div class="header-right">
+        <div>Date : {{date}}</div>
+        <div>Transporteur : {{transporteur}}</div>
+        <div>Tél : {{tel_transporteur}}</div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="title">Lettre de voiture</div>
+    <div class="subtitle">COURSE - URGENCE - MESSAGERIE - LOCATION AVEC CHAUFFEUR - STOCKAGE - COMMISSIONNAIRE</div>
+    <div class="subtitle">FRANCE, EUROPE, MONDE</div>
+
+    <!-- Reference -->
+    <div class="reference">
+      <div>Donneur d'ordre : {{donneur_ordre}}</div>
+      <div>N° {{number}}</div>
+    </div>
+
+    <!-- Distance Info -->
+    <div class="distance-info">
+      Distance prévue : {{kilometers}} km
+    </div>
+
+    <!-- Addresses -->
+    <div class="addresses">
+      <div class="address-box">
+        <div class="address-title">ADRESSE DE CHARGEMENT</div>
+        <div>{{adresse_chargement}}</div>
+        <div style="margin-top: 10px;">DATE/HEURE: {{date_heure_chargement}}</div>
+        <div style="margin-top: 10px;">NOM / SIGNATURE:</div>
+      </div>
+      <div class="address-box">
+        <div class="address-title">ADRESSE DE LIVRAISON</div>
+        <div>{{adresse_livraison}}</div>
+        <div style="margin-top: 10px;">DATE/HEURE: {{date_heure_livraison}}</div>
+        <div style="margin-top: 10px;">NOM / SIGNATURE:</div>
+      </div>
+    </div>
+
+    <!-- Goods Information -->
+    <div class="goods-info">
+      <div class="goods-title">DÉSIGNATION DES MARCHANDISES</div>
+      <div>{{marchandise}}</div>
+      <div class="goods-details">
+        <div class="goods-detail"><strong>Volume:</strong> {{volume}}</div>
+        <div class="goods-detail"><strong>Poids:</strong> {{poids}}</div>
+        <div class="goods-detail"><strong>Mètre:</strong> -</div>
+      </div>
+      <div class="vehicle-type">
+        Type de véhicule : {{vehicle_type}} {{tailgate}}
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <div class="instructions-title">INSTRUCTIONS</div>
+      <div style="margin-bottom: 10px;">
+        <strong>Instructions de chargement:</strong><br/>
+        {{loading_instructions}}
+      </div>
+      <div>
+        <strong>Instructions de déchargement:</strong><br/>
+        {{unloading_instructions}}
+      </div>
+    </div>
+
+    <!-- Exchange Pallets -->
+    <div class="exchange-pallets">
+      <div class="exchange-title">ÉCHANGES PALETTES EUROPE</div>
+      <div class="exchange-options">
+        <div class="exchange-option">
+          <div class="checkbox {{chargees_checked}}"></div>
+          <div>Chargées chez l'expéditeur</div>
+        </div>
+        <div class="exchange-option">
+          <div class="checkbox {{livrees_checked}}"></div>
+          <div>Livrées au destinataire</div>
+        </div>
+        <div class="exchange-option">
+          <div class="checkbox {{rendues_expediteur_checked}}"></div>
+          <div>Rendues à l'expéditeur</div>
+        </div>
+        <div class="exchange-option">
+          <div class="checkbox {{rendues_destinataire_checked}}"></div>
+          <div>Rendues par le destinataire</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reservations -->
+    <div class="reservations">
+      <div class="reservation-box">
+        <div class="reservation-title">RÉSERVES AU CHARGEMENT</div>
+        <div>{{instructions_chargement}}</div>
+      </div>
+      <div class="reservation-box">
+        <div class="reservation-title">RÉSERVES À LA LIVRAISON</div>
+        <div>{{instructions_livraison}}</div>
+      </div>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures">
+      <div class="signature-box">
+        <div class="signature-title">DONNEUR D'ORDRE</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-title">TRANSPORTEUR</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-title">DESTINATAIRE</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      12 RUE DES AIRES 34430 ST JEAN DE VÉDAS - EURL AU CAPITAL DE 4 000€ - RCS Montpellier B 911875672
+    </div>
+  </div>
+</body>
+</html>

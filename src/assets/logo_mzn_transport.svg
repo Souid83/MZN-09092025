@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100">
+  <g fill="#1C2632">
+    <path d="M20 20h40v15h-40z"/>
+    <path d="M70 20h40v15h-40z"/>
+    <path d="M120 20h40v15h-40z"/>
+    <path d="M20 45h40v15h-40z"/>
+    <path d="M70 45h40v15h-40z"/>
+    <path d="M120 45h40v15h-40z"/>
+  </g>
+  <text x="20" y="85" fill="#1C2632" font-family="Arial" font-size="14" font-weight="bold">MZN TRANSPORT</text>
+</svg>
