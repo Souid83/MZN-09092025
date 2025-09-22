@@ -1,8 +1,66 @@
 import { supabase } from '../lib/supabase';
 import { jsPDF } from 'jspdf';
-import { format } from 'date-fns';
+import { format, addDays, isBefore, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ClientInvoice, TransportSlip, FreightSlip } from '../types';
+
+// Agrégation des factures impayées et en retard (période donnée)
+export async function getUnpaidInvoicesStats(startDate?: string, endDate?: string) {
+  // Récupère toutes les factures "en attente" sur la période
+  const { data: invoices, error } = await supabase
+    .from('client_invoices')
+    .select('id, numero, date_emission, montant_ttc, statut')
+    .eq('statut', 'en_attente')
+    .gte('date_emission', startDate || '')
+    .lte('date_emission', endDate || '');
+
+  if (error) {
+    throw new Error(`Error fetching unpaid invoices: ${error.message}`);
+  }
+
+  const today = new Date();
+  let unpaidCount = 0;
+  let unpaidTotal = 0;
+  let overdueCount = 0;
+  let overdueTotal = 0;
+
+  (invoices || []).forEach((inv) => {
+    unpaidCount += 1;
+    unpaidTotal += inv.montant_ttc || 0;
+    // Échéance = date_emission + 30 jours
+    const dueDate = addDays(parseISO(inv.date_emission), 30);
+    if (isBefore(dueDate, today)) {
+      overdueCount += 1;
+      overdueTotal += inv.montant_ttc || 0;
+    }
+  });
+
+  return {
+    unpaidCount,
+    unpaidTotal,
+    overdueCount,
+    overdueTotal
+  };
+}
+
+async function assertNotExploitForbidden() {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) return;
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    const roleUpper = userRow?.role ? String(userRow.role).toUpperCase() : '';
+    if (roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION') {
+      throw new Error(JSON.stringify({ success: false, code: 'FORBIDDEN', message: 'Accès interdit' }));
+    }
+  } catch {
+    // If session/role lookup fails, do not block here; UI and other guards also apply
+  }
+}
 
 export async function generateInvoiceNumber(): Promise<string> {
   const now = new Date();
@@ -34,6 +92,7 @@ export async function createInvoiceFromSlip(
   slip: TransportSlip | FreightSlip,
   type: 'transport' | 'freight'
 ): Promise<ClientInvoice> {
+  await assertNotExploitForbidden();
   try {
     // Get current user ID for created_by field
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +121,7 @@ export async function createInvoiceFromSlip(
     }
 
     // Calculate amounts
-    const montant_ht = type === 'transport' ? slip.price : slip.selling_price || 0;
+    const montant_ht = type === 'transport' ? (slip as TransportSlip).price : ((slip as FreightSlip).selling_price || 0);
     const tva_rate = clientData?.tva_rate || 20;
     const tva = montant_ht * (tva_rate / 100);
     const montant_ttc = montant_ht + tva;
@@ -129,6 +188,7 @@ export async function createGroupedInvoice(
   slips: (TransportSlip | FreightSlip)[],
   type: 'transport' | 'freight'
 ): Promise<ClientInvoice> {
+  await assertNotExploitForbidden();
   try {
     if (slips.length === 0) {
       throw new Error('Aucun bordereau sélectionné');
@@ -174,7 +234,9 @@ export async function createGroupedInvoice(
     
     // Sum up all slip amounts
     slips.forEach(slip => {
-      const slipAmount = type === 'transport' ? slip.price : slip.selling_price || 0;
+      const slipAmount = type === 'transport'
+        ? (slip as TransportSlip).price
+        : ((slip as FreightSlip).selling_price || 0);
       total_montant_ht += slipAmount;
     });
     
@@ -201,11 +263,16 @@ export async function createGroupedInvoice(
     }
 
     // Create a JSON array of slip IDs for reference
-    const slipReferences = slips.map(slip => ({
-      id: slip.id,
-      number: slip.number,
-      amount: type === 'transport' ? slip.price : slip.selling_price
-    }));
+    const slipReferences = slips.map(slip => {
+      const amount = type === 'transport'
+        ? (slip as TransportSlip).price
+        : ((slip as FreightSlip).selling_price || 0);
+      return {
+        id: slip.id,
+        number: slip.number,
+        amount
+      };
+    });
 
     // Store the invoice with references to all slips
     const invoiceData = {
@@ -732,7 +799,9 @@ export async function generateGroupedInvoicePDF(
       doc.text(truncatedDesc, 85, currentY);
       
       // Amount
-      const slipAmount = type === 'transport' ? slip.price : slip.selling_price || 0;
+      const slipAmount = type === 'transport'
+        ? (slip as TransportSlip).price
+        : ((slip as FreightSlip).selling_price || 0);
       doc.text(`${slipAmount.toFixed(2)} €`, 170, currentY);
       
       currentY += 6;
@@ -831,6 +900,7 @@ function extractCityFromAddress(address: string): string {
 }
 
 export async function getAllInvoices(): Promise<ClientInvoice[]> {
+  await assertNotExploitForbidden();
   const { data, error } = await supabase
     .from('client_invoices')
     .select(`
@@ -847,6 +917,7 @@ export async function getAllInvoices(): Promise<ClientInvoice[]> {
 }
 
 export async function updateInvoiceStatus(id: string, statut: 'en_attente' | 'paye'): Promise<void> {
+  await assertNotExploitForbidden();
   const { error } = await supabase
     .from('client_invoices')
     .update({ statut })
@@ -888,6 +959,7 @@ function extractRelativePathFromUrl(urlOrPath: string): string {
 
 // Function to download invoice PDF directly (same system as slips)
 export async function downloadInvoicePDF(invoice: ClientInvoice): Promise<void> {
+  await assertNotExploitForbidden();
   try {
     if (!invoice.lien_pdf) {
       throw new Error('Aucun PDF disponible pour cette facture');

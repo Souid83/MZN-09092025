@@ -171,12 +171,12 @@ export const FreightPDF = ({ slip }: FreightPDFProps) => {
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Client:</Text>
-            <Text>{slip.clients?.nom || ''}</Text>
+            <Text>{slip.client?.nom || ''}</Text>
           </View>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Transporteur:</Text>
-            <Text>{slip.fournisseurs?.nom || ''}</Text>
-            <Text>{slip.fournisseurs?.telephone || ''}</Text>
+            <Text>{slip.fournisseur?.nom || ''}</Text>
+            <Text>{slip.fournisseur?.telephone || ''}</Text>
           </View>
         </View>
 
@@ -230,23 +230,28 @@ export const FreightPDF = ({ slip }: FreightPDFProps) => {
           </View>
         </View>
 
-        {/* Goods Information */}
-        <View style={styles.goodsInfo}>
-          <Text style={styles.sectionTitle}>Marchandise:</Text>
-          <Text>{slip.goods_description}</Text>
-          
-          <View style={[styles.row, { marginTop: 10 }]}>
-            <View style={{ width: '33%' }}>
-              <Text style={styles.label}>Volume: {slip.volume || '-'} m³</Text>
-            </View>
-            <View style={{ width: '33%' }}>
-              <Text style={styles.label}>Poids: {slip.weight || '-'} kg</Text>
-            </View>
-            <View style={{ width: '33%' }}>
-              <Text style={styles.label}>Type de véhicule: {slip.vehicle_type}</Text>
-            </View>
+      {/* Goods Information */}
+      <View style={styles.goodsInfo}>
+        <Text style={styles.sectionTitle}>Marchandise:</Text>
+        <Text>{slip.goods_description}</Text>
+        
+        <View style={[styles.row, { marginTop: 10 }]}>
+          <View style={{ width: '33%' }}>
+            <Text style={styles.label}>Volume: {slip.volume || '-'} m³</Text>
+          </View>
+          <View style={{ width: '33%' }}>
+            <Text style={styles.label}>Poids: {slip.weight || '-'} KG</Text>
+          </View>
+          <View style={{ width: '33%' }}>
+            <Text style={styles.label}>Type de véhicule: {slip.vehicle_type}</Text>
           </View>
         </View>
+
+        {/* Affiche l'information d'échange palettes clairement */}
+        <View style={{ marginTop: 8 }}>
+          <Text style={styles.label}>ÉCHANGES PALETTES: {slip.exchange_type ? String(slip.exchange_type).toUpperCase() : '-'}</Text>
+        </View>
+      </View>
 
         {/* Price Information */}
         <View style={styles.priceInfo}>
@@ -266,6 +271,19 @@ export const FreightPDF = ({ slip }: FreightPDFProps) => {
               <Text>{slip.observations}</Text>
             </>
           )}
+        </View>
+
+        {/* RÉSERVES AU CHARGEMENT / RÉSERVES À LA LIVRAISON (laisser vides, remplies manuellement par le chauffeur) */}
+        <View style={styles.twoColumns}>
+          <View style={[styles.section, styles.column]}>
+            <Text style={styles.sectionTitle}>RÉSERVES AU CHARGEMENT</Text>
+            <Text>{''}</Text>
+          </View>
+
+          <View style={[styles.section, styles.column]}>
+            <Text style={styles.sectionTitle}>RÉSERVES À LA LIVRAISON</Text>
+            <Text>{''}</Text>
+          </View>
         </View>
 
         {/* Warning */}

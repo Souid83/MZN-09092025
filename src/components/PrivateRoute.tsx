@@ -22,9 +22,13 @@ console.log("🧪 LOADING :", loading);
     return <Navigate to="/login" replace />;
   }
 
-  if (roles && !roles.includes(user.role)) {
-    console.log("⛔ Rôle non autorisé :", user.role);
-    return <Navigate to="/login" replace />;
+  if (roles) {
+    const allowed = roles.map(r => r.toLowerCase());
+    const current = (user.role || '').toLowerCase();
+    if (!allowed.includes(current)) {
+      console.log("⛔ Rôle non autorisé :", user.role);
+      return <Navigate to="/login" replace />;
+    }
   }
 
   return <>{children}</>;

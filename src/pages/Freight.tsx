@@ -32,6 +32,23 @@ const Freight = () => {
 
   const { data: clients } = useClients();
   const { data: fournisseurs } = useFournisseurs();
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email');
+      if (!error && data) {
+        const map: Record<string, string> = {};
+        (data as any[]).forEach((u) => {
+          map[u.id] = u.name || u.email || u.id;
+        });
+        setUserNames(map);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   // Filter states
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -487,6 +504,7 @@ const Freight = () => {
               <TableHeader>Statut</TableHeader>
               <TableHeader>Numéro</TableHeader>
               <TableHeader>Client</TableHeader>
+              <TableHeader>Saisi par</TableHeader>
               <TableHeader>Date</TableHeader>
               <TableHeader>Affréteur</TableHeader>
               <TableHeader>ACHAT HT</TableHeader>
@@ -531,6 +549,9 @@ const Freight = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {slip.client?.nom}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {slip.created_by ? (userNames[slip.created_by] || '-') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr })}

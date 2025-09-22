@@ -4,6 +4,25 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ClientQuote, Client } from '../types';
 
+async function assertNotExploitForbidden() {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) return;
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    const roleUpper = userRow?.role ? String(userRow.role).toUpperCase() : '';
+    if (roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION') {
+      throw new Error(JSON.stringify({ success: false, code: 'FORBIDDEN', message: 'Accès interdit' }));
+    }
+  } catch {
+    // fail-open to avoid breaking non-exploitation roles if lookup fails
+  }
+}
+
 export async function generateQuoteNumber(): Promise<string> {
   const now = new Date();
   const year = now.getFullYear().toString().slice(-2);
@@ -31,13 +50,35 @@ export async function generateQuoteNumber(): Promise<string> {
 }
 
 export async function getAllQuotes(): Promise<ClientQuote[]> {
-  const { data, error } = await supabase
+  // Base query
+  let query = supabase
     .from('client_quotes')
     .select(`
       *,
       client:client_id(nom, email, adresse_facturation, telephone)
     `)
     .order('created_at', { ascending: false });
+
+  // Restrict to own quotes for EXPLOITATION users
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (userId) {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      const roleUpper = userRow?.role ? String(userRow.role).toUpperCase() : '';
+      if (roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION') {
+        query = query.eq('created_by', userId);
+      }
+    }
+  } catch {
+    // ignore filtering if session lookup fails
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Error fetching quotes: ${error.message}`);
@@ -334,6 +375,7 @@ export async function downloadQuotePDF(quote: ClientQuote): Promise<void> {
 }
 
 export async function convertQuoteToInvoice(quote: ClientQuote): Promise<string> {
+  await assertNotExploitForbidden();
   try {
     // Import the invoice service functions
     const { generateInvoiceNumber } = await import('./invoices');

@@ -14,6 +14,8 @@ import { createTransportSlip, getAllTransportSlips, generatePDF } from '../servi
 import { createInvoiceFromSlip, checkInvoiceExists, createGroupedInvoice } from '../services/invoices';
 import { useClients } from '../hooks/useClients';
 import type { TransportSlip } from '../types';
+import { supabase } from '../lib/supabase';
+import { useUser } from '../contexts/UserContext';
 
 const Transport = () => {
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +31,26 @@ const Transport = () => {
   const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, boolean>>({});
 
   const { data: clients } = useClients();
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, email');
+      if (!error && data) {
+        const map: Record<string, string> = {};
+        (data as any[]).forEach((u) => {
+          map[u.id] = u.name || u.email || u.id;
+        });
+        setUserNames(map);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const { user } = useUser();
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   // Filter states
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -45,6 +67,13 @@ const Transport = () => {
   useEffect(() => {
     fetchSlips();
   }, []);
+
+  // Rafraîchir la liste après fermeture du modal de création
+  useEffect(() => {
+    if (!showForm) {
+      fetchSlips();
+    }
+  }, [showForm]);
 
   useEffect(() => {
     applyFilters();
@@ -445,7 +474,10 @@ const Transport = () => {
       {showForm && (
         <SlipForm
           type="transport"
-          onSubmit={handleCreate}
+          onSubmit={async (data) => {
+            await handleCreate(data);
+            await fetchSlips();
+          }}
           onCancel={() => setShowForm(false)}
           loading={loading}
         />
@@ -505,6 +537,7 @@ const Transport = () => {
               <TableHeader>Statut</TableHeader>
               <TableHeader>Numéro</TableHeader>
               <TableHeader>Client</TableHeader>
+              <TableHeader>Saisi par</TableHeader>
               <TableHeader>Date</TableHeader>
               <TableHeader>Chauffeur</TableHeader>
               <TableHeader>Véhicule</TableHeader>
@@ -542,12 +575,20 @@ const Transport = () => {
                       onUpdate={fetchSlips}
                       invoiceRefreshTrigger={invoiceRefreshTrigger}
                     />
+                    {isAdmin && slip.created_by && slip.created_by !== user?.id && (
+                      <div className="text-xs text-green-700 font-semibold mt-1">
+                        Créé par {userNames[slip.created_by] || 'employé'}
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {slip.order_number ? `${slip.number} / ${slip.order_number}` : slip.number}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {slip.client?.nom}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {slip.created_by ? (userNames[slip.created_by] || '-') : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {new Date(slip.delivery_date).toLocaleDateString('fr-FR')}

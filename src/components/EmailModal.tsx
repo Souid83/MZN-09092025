@@ -230,11 +230,21 @@ export default function EmailModal({
         }))
       ];
 
+      // Ajouter automatiquement la signature de l'utilisateur connecté
+      let finalEmailBody = emailBody;
+      if (user?.metadata?.email_signature) {
+        // Ajouter la signature si elle n'est pas déjà présente
+        if (!finalEmailBody.includes(user.metadata.email_signature)) {
+          finalEmailBody += '\n\n' + user.metadata.email_signature;
+        }
+      }
+
       await sendEmail({
         to: emailList.join(', '),
         subject,
-        body: emailBody,
-        attachments
+        body: finalEmailBody,
+        attachments,
+        replyTo: user?.email || ''
       });
 
       toast.success('Email envoyé avec succès');

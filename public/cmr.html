@@ -144,6 +144,10 @@
       border: 1px solid #000;
       padding: 10px;
       margin: 0 5px;
+      min-height: 150px; /* Hauteur triplée pour permettre l'écriture */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start; /* Titre reste en haut */
     }
     .reservation-title {
       font-weight: bold;
@@ -206,7 +210,7 @@
         <div>34430 SAINT JEAN DE VÉDAS</div>
         <div>FR48911875672</div>
         <div>{{nom_interlocuteur}}</div>
-        <div>07 81 65 49 21</div>
+        <div>{{phone_number}}</div>
       </div>
       <div class="header-center">
         <img src="/logo_mzm_transport_cleaned_v2.png" alt="Logo MZN" class="logo" crossorigin="anonymous" />
@@ -255,8 +259,8 @@
       <div class="goods-title">DÉSIGNATION DES MARCHANDISES</div>
       <div>{{marchandise}}</div>
       <div class="goods-details">
-        <div class="goods-detail"><strong>Volume:</strong> {{volume}}</div>
-        <div class="goods-detail"><strong>Poids:</strong> {{poids}}</div>
+        <div class="goods-detail"><strong>Volume:</strong> {{volume}} m³</div>
+        <div class="goods-detail"><strong>Poids:</strong> {{poids}} KG</div>
         <div class="goods-detail"><strong>Mètre:</strong> -</div>
       </div>
       <div class="vehicle-type">
@@ -280,6 +284,7 @@
     <!-- Exchange Pallets -->
     <div class="exchange-pallets">
       <div class="exchange-title">ÉCHANGES PALETTES EUROPE</div>
+      <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">ÉCHANGE PALETTES: {{echange}}</div>
       <div class="exchange-options">
         <div class="exchange-option">
           <div class="checkbox {{chargees_checked}}"></div>
@@ -304,11 +309,11 @@
     <div class="reservations">
       <div class="reservation-box">
         <div class="reservation-title">RÉSERVES AU CHARGEMENT</div>
-        <div>{{instructions_chargement}}</div>
+        <div></div>
       </div>
       <div class="reservation-box">
         <div class="reservation-title">RÉSERVES À LA LIVRAISON</div>
-        <div>{{instructions_livraison}}</div>
+        <div></div>
       </div>
     </div>
 
@@ -328,6 +333,44 @@
     <!-- Footer -->
     <div class="footer">
       12 RUE DES AIRES 34430 ST JEAN DE VÉDAS - EURL AU CAPITAL DE 4 000€ - RCS Montpellier B 911875672
+    </div>
+  </div>
+
+  <!-- Page 2: Conditions Générales -->
+  <div class="page">
+    <div style="margin: 60px 40px;">
+      <div style="text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 14px; font-size: 12px;">
+        CONDITIONS GÉNÉRALES DE TRANSPORT DE MARCHANDISES:
+      </div>
+
+      <div style="margin-bottom: 8px; line-height: 1.6;">
+        Tout transport est soumis, nonobstant toute clause contraire, à la Conventions relative au contrat de transport de marchandises
+        par route.
+      </div>
+
+      <ul style="margin: 0; padding-left: 18px; line-height: 1.6;">
+        <li>
+          Le poids et le volume de la marchandise détermine le véhicule nécessaire au transport, nous nous réservons le droit de refuser le
+          chargement si le fret n’est pas conforme.
+        </li>
+        <li>
+          Les manutentions sont effectuées sous la responsabilité du client avec l'aide du chauffeur et facturées
+        </li>
+        <li>
+          Si l'expédition ne fait pas l'objet d'une déclaration de valeur et d'une souscription à une assurance complémentaire, notre
+          responsabilité en cas de perte, de vol ou de destruction fortuite ne pourra être engagée au-delà de la limite de 33€ HT/kg sans
+          dépasser 1000€ HT/colis ou 19 000 €/ véhicule.
+        </li>
+        <li>
+          En cas de Force majeure, nous déclinons toute responsabilité pour retard dans les livraisons.
+        </li>
+        <li>
+          Sauf accords spéciaux, nos prix sont établis pour un paiement comptant net et sans escompte.
+        </li>
+        <li>
+          En cas de contestation, le tribunal de commerce du siège est seul compétent.
+        </li>
+      </ul>
     </div>
   </div>
 </body>

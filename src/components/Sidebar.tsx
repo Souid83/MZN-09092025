@@ -22,13 +22,9 @@ import { useUser } from '../contexts/UserContext';
 const Sidebar = () => {
   const { user, signOut } = useUser();
   const navigate = useNavigate();
+  const isExploitation = user?.role?.toLowerCase().includes('exploit');
 
-  // Redirect exploit users to clients-visible instead of clients
-  React.useEffect(() => {
-    if (user?.role === 'exploit' && window.location.pathname === '/clients') {
-      navigate('/clients-visible');
-    }
-  }, [user, navigate]);
+  // (Suppression de la redirection automatique des exploitants vers /clients-visible)
 
   return (
     <div className="flex">
@@ -68,21 +64,13 @@ const Sidebar = () => {
             <span>Affrètement</span>
           </NavLink>
 
-          {user?.role === 'exploit' ? (
-            <NavLink to="/clients-visible" className={({ isActive }) =>
-              `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
-            }>
-              <UserCheck size={20} />
-              <span>Mes Clients</span>
-            </NavLink>
-          ) : (
-            <NavLink to="/clients" className={({ isActive }) =>
-              `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
-            }>
-              <Users size={20} />
-              <span>Clients</span>
-            </NavLink>
-          )}
+          {/* Affiche toujours les deux liens pour tous les rôles */}
+          <NavLink to="/clients" className={({ isActive }) =>
+            `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
+          }>
+            <Users size={20} />
+            <span>Clients</span>
+          </NavLink>
 
           <NavLink to="/suppliers" className={({ isActive }) =>
             `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
@@ -91,12 +79,14 @@ const Sidebar = () => {
             <span>Fournisseurs</span>
           </NavLink>
 
-          <NavLink to="/invoices" className={({ isActive }) =>
-            `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
-          }>
-            <Receipt size={20} />
-            <span>Factures client</span>
-          </NavLink>
+          {!isExploitation && (
+            <NavLink to="/invoices" className={({ isActive }) =>
+              `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
+            }>
+              <Receipt size={20} />
+              <span>Factures client</span>
+            </NavLink>
+          )}
 
           <NavLink to="/quotes" className={({ isActive }) =>
             `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
@@ -105,19 +95,23 @@ const Sidebar = () => {
             <span>Devis client</span>
           </NavLink>
 
-          <NavLink to="/credit-notes" className={({ isActive }) =>
-            `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
-          }>
-            <ArrowDownLeft size={20} />
-            <span>Avoirs clients</span>
-          </NavLink>
+          {!isExploitation && (
+            <NavLink to="/credit-notes" className={({ isActive }) =>
+              `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
+            }>
+              <ArrowDownLeft size={20} />
+              <span>Avoirs clients</span>
+            </NavLink>
+          )}
 
-          <NavLink to="/statistics" className={({ isActive }) =>
-            `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
-          }>
-            <BarChart size={20} />
-            <span>Statistiques</span>
-          </NavLink>
+          {!isExploitation && (
+            <NavLink to="/statistics" className={({ isActive }) =>
+              `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
+            }>
+              <BarChart size={20} />
+              <span>Statistiques</span>
+            </NavLink>
+          )}
 
           <NavLink to="/pending" className={({ isActive }) =>
             `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
@@ -133,7 +127,7 @@ const Sidebar = () => {
             <span>Litiges</span>
           </NavLink>
 
-          {user?.role === 'admin' && (
+          {user?.role?.toLowerCase() === 'admin' && (
             <NavLink to="/settings" className={({ isActive }) =>
               `flex items-center space-x-3 p-3 rounded-lg ${isActive ? 'bg-gray-700' : 'hover:bg-gray-700'}`
             }>

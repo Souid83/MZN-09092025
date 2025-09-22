@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pencil, Send, FileText, Upload, Folder, Trash2, Download, Receipt } from 'lucide-react';
 import { checkInvoiceExists } from '../services/invoices';
 import type { TransportSlip, FreightSlip } from '../types';
+import { useUser } from '../contexts/UserContext';
 
 interface ActionButtonsProps {
   slip: TransportSlip | FreightSlip;
@@ -38,10 +39,14 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 }) => {
   const [hasInvoice, setHasInvoice] = useState(false);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
+  const { user } = useUser();
+  const roleUpper = String(user?.role || '').toUpperCase();
+  const isExploit = roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION';
+  const canInvoice = !isExploit && slip.status === 'delivered' && Boolean(onGenerateInvoice);
 
   useEffect(() => {
     const checkInvoice = async () => {
-      if (slip.status === 'delivered' && onGenerateInvoice) {
+      if (canInvoice) {
         setCheckingInvoice(true);
         try {
           const exists = await checkInvoiceExists(slip.id, slipType);
@@ -55,7 +60,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     };
 
     checkInvoice();
-  }, [slip.id, slip.status, slipType, onGenerateInvoice]);
+  }, [slip.id, slip.status, slipType, onGenerateInvoice, canInvoice]);
 
   const handleGenerateInvoice = async () => {
     if (hasInvoice || !onGenerateInvoice) return;
@@ -174,7 +179,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         </div>
       )}
 
-      {slip.status === 'delivered' && onGenerateInvoice && (
+      {canInvoice && (
         <div className="group relative">
           <button
             onClick={handleGenerateInvoice}

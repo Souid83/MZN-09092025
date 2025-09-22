@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 import type { ClientQuote, Client } from '../types';
 import toast from 'react-hot-toast';
 import EmailModal from '../components/EmailModal';
+import { useUser } from '../contexts/UserContext';
 
 interface QuoteFormData {
   client_id: string;
@@ -33,6 +34,9 @@ export default function Quotes() {
     montant_ht: 0,
     tva_rate: 20
   });
+  const { user } = useUser();
+  const roleUpper = String(user?.role || '').toUpperCase();
+  const isExploit = roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION';
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -216,6 +220,7 @@ export default function Quotes() {
       }
 
       // Create quote record
+      const { data: authUser } = await supabase.auth.getUser();
       const quoteData = {
         numero,
         client_id: formData.client_id,
@@ -225,7 +230,8 @@ export default function Quotes() {
         tva,
         montant_ttc,
         lien_pdf: pdfPath,
-        statut: 'en_attente' as const
+        statut: 'en_attente' as const,
+        created_by: authUser.user?.id
       };
 
       const { data: newQuote, error } = await supabase
@@ -655,7 +661,7 @@ export default function Quotes() {
                     >
                       <Mail size={18} />
                     </button>
-                    {(quote.statut === 'accepte' || quote.statut === 'en_attente') && !quote.invoice_id && (
+                    {!isExploit && (quote.statut === 'accepte' || quote.statut === 'en_attente') && !quote.invoice_id && (
                       <button
                         onClick={() => handleConvertToInvoice(quote)}
                         className="text-purple-600 hover:text-purple-800"

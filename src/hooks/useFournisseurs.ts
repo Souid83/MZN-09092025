@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllFournisseurs, createFournisseur, updateFournisseur } from '../services/fournisseurs';
+import { getFournisseurs, createFournisseur, updateFournisseur } from '../services/fournisseurs';
 import type { Fournisseur, CreateFournisseurPayload } from '../types';
 
 export function useFournisseurs() {
@@ -10,7 +10,7 @@ export function useFournisseurs() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const fournisseurs = await getAllFournisseurs();
+        const fournisseurs = await getFournisseurs();
         setData(fournisseurs);
         setError(null);
       } catch (err) {
@@ -26,7 +26,7 @@ export function useFournisseurs() {
   const refresh = async () => {
     setLoading(true);
     try {
-      const fournisseurs = await getAllFournisseurs();
+      const fournisseurs = await getFournisseurs();
       setData(fournisseurs);
       setError(null);
     } catch (err) {

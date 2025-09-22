@@ -166,7 +166,7 @@ export const BpaPDF = ({ slip }: BpaPDFProps) => {
         <View style={styles.row}>
           <View style={styles.column}>
             <Text style={styles.sectionTitle}>Client:</Text>
-            <Text>{slip.clients?.nom || ''}</Text>
+            <Text>{slip.client?.nom || ''}</Text>
           </View>
         </View>
 
@@ -230,7 +230,7 @@ export const BpaPDF = ({ slip }: BpaPDFProps) => {
               <Text style={styles.label}>Volume: {slip.volume || '-'} m³</Text>
             </View>
             <View style={{ width: '33%' }}>
-              <Text style={styles.label}>Poids: {slip.weight || '-'} kg</Text>
+              <Text style={styles.label}>Poids: {slip.weight || '-'} KG</Text>
             </View>
             <View style={{ width: '33%' }}>
               <Text style={styles.label}>Type de véhicule: {slip.vehicle_type}</Text>
@@ -256,6 +256,19 @@ export const BpaPDF = ({ slip }: BpaPDFProps) => {
               <Text>{slip.observations}</Text>
             </>
           )}
+        </View>
+
+        {/* RÉSERVES AU CHARGEMENT / RÉSERVES À LA LIVRAISON (laisser vides) */}
+        <View style={styles.twoColumns}>
+          <View style={[styles.section, styles.column]}>
+            <Text style={styles.sectionTitle}>RÉSERVES AU CHARGEMENT</Text>
+            <Text>{''}</Text>
+          </View>
+
+          <View style={[styles.section, styles.column]}>
+            <Text style={styles.sectionTitle}>RÉSERVES À LA LIVRAISON</Text>
+            <Text>{''}</Text>
+          </View>
         </View>
 
         {/* Legal Mentions */}

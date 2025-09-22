@@ -7,6 +7,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  phone_number?: string;
   role: string;
   metadata?: {
     email_signature?: string;
@@ -37,7 +38,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, role, metadata')
+        .select('id, name, email, phone_number, role, metadata')
         .eq('id', userId)
         .maybeSingle();
 
@@ -69,13 +70,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
         const userData = await fetchUserData(session.user.id);
         if (!userData) {
-          console.log("❌ Aucun user trouvé, redirection...");
-          await supabase.auth.signOut();
+          console.log("❌ Aucun user trouvé dans la table users. Contactez l'administrateur.");
+          toast.error("Votre compte existe côté authentification mais pas dans la base utilisateurs. Contactez l'administrateur.");
           if (mounted) {
             setUser(null);
             setLoading(false);
           }
-          navigate('/login');
+          // On ne déconnecte pas brutalement, on reste sur la page pour afficher l'erreur
           return;
         }
 
@@ -121,6 +122,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (!authData.user) {
         throw new Error('Invalid login credentials');
       }
+      console.log("UUID utilisateur connecté :", authData.user.id);
 
       const userData = await fetchUserData(authData.user.id);
       if (!userData) {
@@ -142,12 +144,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setUser(null);
-      navigate('/login');
+      if (error && error.name !== 'AuthSessionMissingError') throw error;
     } catch (error) {
       console.error('Logout error:', error);
-      toast.error('Erreur lors de la déconnexion');
+      // On force la redirection même si la session est absente ou corrompue
+    } finally {
+      setUser(null);
+      navigate('/login');
     }
   };
 

@@ -15,6 +15,8 @@ import CompanySettings from './pages/CompanySettings';
 import EmailSettings from './pages/EmailSettings';
 import AISettings from './pages/AISettings';
 import Users from './pages/Users';
+import UserClientAttributions from './pages/UserClientAttributions';
+import UserFournisseurAttributions from './pages/UserFournisseurAttributions';
 import Disputes from './pages/Disputes';
 import Pending from './pages/Pending';
 import Invoices from './pages/Invoices';
@@ -41,7 +43,7 @@ function App() {
               <Route index element={<Navigate to="/dashboard\" replace />} />
               <Route path="dashboard" element={<Pilotage />} />
               <Route path="clients" element={
-                <PrivateRoute roles={['admin', 'compta', 'direction']}>
+                <PrivateRoute roles={['admin', 'compta', 'direction', 'exploit', 'exploitation']}>
                   <Clients />
                 </PrivateRoute>
               } />
@@ -55,10 +57,18 @@ function App() {
               <Route path="freight" element={<Freight />} />
               <Route path="disputes" element={<Disputes />} />
               <Route path="pending" element={<Pending />} />
-              <Route path="invoices" element={<Invoices />} />
+              <Route path="invoices" element={
+                <PrivateRoute roles={['admin', 'compta', 'direction']}>
+                  <Invoices />
+                </PrivateRoute>
+              } />
               <Route path="quotes" element={<Quotes />} />
               <Route path="credit-notes" element={<CreditNotes />} />
-              <Route path="statistics" element={<Statistics />} />
+              <Route path="statistics" element={
+                <PrivateRoute roles={['admin', 'compta', 'direction']}>
+                  <Statistics />
+                </PrivateRoute>
+              } />
               <Route path="settings" element={<Settings />} />
               <Route
                 path="settings/company"
@@ -89,6 +99,22 @@ function App() {
                 element={
                   <PrivateRoute roles={['admin']}>
                     <Users />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="settings/user-clients"
+                element={
+                  <PrivateRoute roles={['admin']}>
+                    <UserClientAttributions />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="settings/user-fournisseurs"
+                element={
+                  <PrivateRoute roles={['admin']}>
+                    <UserFournisseurAttributions />
                   </PrivateRoute>
                 }
               />

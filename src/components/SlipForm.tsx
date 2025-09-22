@@ -330,7 +330,7 @@ const SlipForm: React.FC<SlipFormProps> = ({
   useEffect(() => {
     if (type === 'freight') {
       const margin = sellingPrice - purchasePrice;
-      const rate = sellingPrice > 0 ? (margin / sellingPrice) * 100 : 0;
+      const rate = purchasePrice > 0 ? (margin / purchasePrice) * 100 : 0;
       setMargin(margin);
       setMarginRate(rate);
     }
@@ -354,6 +354,28 @@ const SlipForm: React.FC<SlipFormProps> = ({
     const client = clients.find(c => c.id === e.target.value);
     setSelectedClient(client || null);
     setFormData(prev => ({ ...prev, client_id: e.target.value }));
+
+    // Remplissage automatique de l'adresse si le client est trouvé
+    if (client) {
+      // On suppose que client.adresse_facturation contient l'adresse complète (à adapter si besoin)
+      // On tente de parser l'adresse en entreprise, adresse, code postal, ville
+      const parts = (client.adresse_facturation || '').split(',');
+      const company = client.nom || '';
+      const address = parts[0]?.trim() || '';
+      let postalCode = '';
+      let city = '';
+      if (parts[1]) {
+        const cpVille = parts[1].trim().split(' ');
+        postalCode = cpVille[0] || '';
+        city = cpVille.slice(1).join(' ') || '';
+      }
+      setLoadingAddress({
+        company,
+        address,
+        postalCode,
+        city
+      });
+    }
   };
 
   const handleFournisseurChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

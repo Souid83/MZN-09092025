@@ -7,9 +7,12 @@ import toast from 'react-hot-toast';
 import { useClients } from '../hooks/useClients';
 import { useFournisseurs } from '../hooks/useFournisseurs';
 import * as XLSX from 'xlsx';
+import { getClientDisputesStats } from '../services/slips';
+import { getUnpaidInvoicesStats } from '../services/invoices';
+import TableHeader from '../components/TableHeader';
+import { BarChart as ReBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Legend } from 'recharts';
 
-// Define period types
-type PeriodType = 'month' | 'quarter' | 'year';
+type PeriodType = 'month' | 'quarter' | 'year' | 'custom';
 
 // Define tab types
 type TabType = 'global' | 'freight' | 'transport';
@@ -57,6 +60,8 @@ const Statistics = () => {
   
   // State for filters
   const [periodType, setPeriodType] = useState<PeriodType>('month');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [selectedServiceType, setSelectedServiceType] = useState<'all' | 'transport' | 'freight'>('all');
   const [minMarginRate, setMinMarginRate] = useState<number>(0);
   const [maxMarginRate, setMaxMarginRate] = useState<number>(100);
@@ -70,6 +75,16 @@ const Statistics = () => {
   const [freightStats, setFreightStats] = useState<FreightStats | null>(null);
   const [transportStats, setTransportStats] = useState<TransportStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // KPI par client et sous-traitant
+  const [kpiByClient, setKpiByClient] = useState<any[]>([]);
+  const [kpiByFournisseur, setKpiByFournisseur] = useState<any[]>([]);
+
+  // State for disputes stats
+  const [disputesStats, setDisputesStats] = useState<{ disputes: { client_id: string, client_nom: string, count: number }[], totalClientsWithDispute: number }>({ disputes: [], totalClientsWithDispute: 0 });
+
+  // State for unpaid/overdue invoices stats
+  const [unpaidStats, setUnpaidStats] = useState<{ unpaidCount: number, unpaidTotal: number, overdueCount: number, overdueTotal: number }>({ unpaidCount: 0, unpaidTotal: 0, overdueCount: 0, overdueTotal: 0 });
   
   // Get clients and fournisseurs for filters
   const { data: clients } = useClients();
@@ -80,7 +95,14 @@ const Statistics = () => {
     const now = new Date();
     let startDate: Date;
     let endDate = now;
-    
+
+    if (periodType === 'custom' && customStartDate && customEndDate) {
+      return {
+        start: customStartDate,
+        end: customEndDate
+      };
+    }
+
     switch (periodType) {
       case 'month':
         startDate = startOfMonth(now);
@@ -94,7 +116,7 @@ const Statistics = () => {
       default:
         startDate = startOfMonth(now);
     }
-    
+
     return {
       start: format(startDate, 'yyyy-MM-dd'),
       end: format(endDate, 'yyyy-MM-dd')
@@ -136,6 +158,25 @@ const Statistics = () => {
     fetchStatistics();
   }, [periodType, selectedServiceType, minMarginRate, maxMarginRate, selectedFournisseur, selectedClient, minPricePerKm, showNegativeGrowthOnly, activeTab]);
 
+  // Fetch disputes stats
+  useEffect(() => {
+    const fetchDisputes = async () => {
+      const dateRange = getDateRange();
+      const stats = await getClientDisputesStats(dateRange.start, dateRange.end);
+      setDisputesStats(stats);
+    };
+    fetchDisputes();
+
+    // Fetch unpaid/overdue invoices stats
+    const fetchUnpaid = async () => {
+      const dateRange = getDateRange();
+      const stats = await getUnpaidInvoicesStats(dateRange.start, dateRange.end);
+      setUnpaidStats(stats);
+    };
+    fetchUnpaid();
+    // eslint-disable-next-line
+  }, [periodType, customStartDate, customEndDate]);
+
   const fetchStatistics = async () => {
     setLoading(true);
     
@@ -167,7 +208,7 @@ const Statistics = () => {
     // Fetch transport slips
     const { data: transportSlips, error: transportError } = await supabase
       .from('transport_slips')
-      .select('*')
+      .select('*, client:client_id(nom), fournisseur_id, fournisseur:fournisseur_id(nom)')
       .gte('loading_date', dateRange.start)
       .lte('loading_date', dateRange.end)
       .neq('status', 'dispute');
@@ -177,7 +218,7 @@ const Statistics = () => {
     // Fetch freight slips
     const { data: freightSlips, error: freightError } = await supabase
       .from('freight_slips')
-      .select('*')
+      .select('*, client:client_id(nom), fournisseur_id, fournisseur:fournisseur_id(nom)')
       .gte('loading_date', dateRange.start)
       .lte('loading_date', dateRange.end)
       .neq('status', 'dispute');
@@ -219,7 +260,7 @@ const Statistics = () => {
       return marginRate >= minMarginRate && marginRate <= maxMarginRate;
     });
     
-    // Calculate statistics
+    // Calculate statistics globaux
     const totalTransportTrips = filteredTransportSlips.length;
     const totalFreightTrips = filteredFreightSlips.length;
     const totalTrips = totalTransportTrips + totalFreightTrips;
@@ -268,6 +309,95 @@ const Statistics = () => {
       freightPercentage,
       growthRate
     });
+
+    // Agrégation KPI par client
+    const kpiClientMap: Record<string, any> = {};
+    filteredTransportSlips.forEach(slip => {
+      if (!slip.client_id) return;
+      const key = slip.client_id;
+      if (!kpiClientMap[key]) {
+        kpiClientMap[key] = {
+          client_id: key,
+          client_nom: slip.client?.nom || 'Inconnu',
+          ca: 0,
+          km: 0,
+          courses: 0,
+          marge: 0,
+          tauxMarge: 0
+        };
+      }
+      kpiClientMap[key].ca += slip.price || 0;
+      kpiClientMap[key].km += slip.kilometers || 0;
+      kpiClientMap[key].courses += 1;
+    });
+    filteredFreightSlips.forEach(slip => {
+      if (!slip.client_id) return;
+      const key = slip.client_id;
+      if (!kpiClientMap[key]) {
+        kpiClientMap[key] = {
+          client_id: key,
+          client_nom: slip.client?.nom || 'Inconnu',
+          ca: 0,
+          km: 0,
+          courses: 0,
+          marge: 0,
+          tauxMarge: 0
+        };
+      }
+      kpiClientMap[key].ca += slip.selling_price || 0;
+      kpiClientMap[key].marge += slip.margin || 0;
+      kpiClientMap[key].courses += 1;
+    });
+    // Calcul du CA/km et taux de marge
+    Object.values(kpiClientMap).forEach((k: any) => {
+      k.caParKm = k.km > 0 ? k.ca / k.km : 0;
+      k.tauxMarge = k.ca > 0 ? (k.marge / k.ca) * 100 : 0;
+    });
+    setKpiByClient(Object.values(kpiClientMap));
+
+    // Agrégation KPI par sous-traitant
+    const kpiFournisseurMap: Record<string, any> = {};
+    filteredFreightSlips.forEach(slip => {
+      if (!slip.fournisseur_id) return;
+      const key = slip.fournisseur_id;
+      if (!kpiFournisseurMap[key]) {
+        kpiFournisseurMap[key] = {
+          fournisseur_id: key,
+          fournisseur_nom: slip.fournisseur?.nom || 'Inconnu',
+          ca: 0,
+          km: 0,
+          courses: 0,
+          marge: 0,
+          tauxMarge: 0
+        };
+      }
+      kpiFournisseurMap[key].ca += slip.selling_price || 0;
+      kpiFournisseurMap[key].marge += slip.margin || 0;
+      kpiFournisseurMap[key].courses += 1;
+    });
+    filteredTransportSlips.forEach(slip => {
+      if (!slip.fournisseur_id) return;
+      const key = slip.fournisseur_id;
+      if (!kpiFournisseurMap[key]) {
+        kpiFournisseurMap[key] = {
+          fournisseur_id: key,
+          fournisseur_nom: slip.fournisseur?.nom || 'Inconnu',
+          ca: 0,
+          km: 0,
+          courses: 0,
+          marge: 0,
+          tauxMarge: 0
+        };
+      }
+      kpiFournisseurMap[key].ca += slip.price || 0;
+      kpiFournisseurMap[key].km += slip.kilometers || 0;
+      kpiFournisseurMap[key].courses += 1;
+    });
+    Object.values(kpiFournisseurMap).forEach((k: any) => {
+      k.caParKm = k.km > 0 ? k.ca / k.km : 0;
+      k.tauxMarge = k.ca > 0 ? (k.marge / k.ca) * 100 : 0;
+    });
+    setKpiByFournisseur(Object.values(kpiFournisseurMap));
   };
 
   const fetchFreightStats = async (dateRange: { start: string, end: string }, previousPeriodDateRange: { start: string, end: string }) => {
@@ -462,68 +592,89 @@ const Statistics = () => {
   // Export data to Excel
   const exportToExcel = () => {
     try {
-      let data: any[] = [];
+      let wb = XLSX.utils.book_new();
       let filename = '';
-      
+
       switch (activeTab) {
         case 'global':
           if (!globalStats) return;
-          
-          data = [{
-            'Total CA global': formatCurrency(globalStats.totalRevenue),
+          // Statistiques globales
+          const globalData = [{
+            'Total CA global': globalStats.totalRevenue,
             'Total nombre de courses': globalStats.totalTrips,
             'Total nombre de kilomètres': Math.round(globalStats.totalKilometers),
-            'Prix moyen au kilomètre': formatCurrency(globalStats.avgPricePerKm),
-            'Prix moyen d\'achat': formatCurrency(globalStats.avgPurchasePrice),
-            'Prix moyen de vente': formatCurrency(globalStats.avgSellingPrice),
-            'Marge brute totale': formatCurrency(globalStats.totalMargin),
-            'Taux de marge moyen': `${globalStats.avgMarginRate.toFixed(2)}%`,
-            'Part CA Transport': `${globalStats.transportPercentage.toFixed(2)}%`,
-            'Part CA Affrètement': `${globalStats.freightPercentage.toFixed(2)}%`,
-            'Évolution globale': `${globalStats.growthRate.toFixed(2)}%`
+            'Prix moyen au kilomètre': globalStats.avgPricePerKm,
+            'Prix moyen d\'achat': globalStats.avgPurchasePrice,
+            'Prix moyen de vente': globalStats.avgSellingPrice,
+            'Marge brute totale': globalStats.totalMargin,
+            'Taux de marge moyen': globalStats.avgMarginRate,
+            'Part CA Transport': globalStats.transportPercentage,
+            'Part CA Affrètement': globalStats.freightPercentage,
+            'Évolution globale': globalStats.growthRate
           }];
-          
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(globalData), 'Statistiques');
+
+          // KPI par client
+          if (kpiByClient.length > 0) {
+            const clientData = kpiByClient.map(k => ({
+              'Client': k.client_nom,
+              'CA': k.ca,
+              'CA/km': k.caParKm,
+              'Courses': k.courses,
+              'Marge': k.marge,
+              'Taux de marge': k.tauxMarge
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(clientData), 'KPI Clients');
+          }
+
+          // KPI par sous-traitant
+          if (kpiByFournisseur.length > 0) {
+            const fournisseurData = kpiByFournisseur.map(k => ({
+              'Sous-traitant': k.fournisseur_nom,
+              'CA': k.ca,
+              'CA/km': k.caParKm,
+              'Courses': k.courses,
+              'Marge': k.marge,
+              'Taux de marge': k.tauxMarge
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fournisseurData), 'KPI Sous-traitants');
+          }
+
           filename = `Statistiques_Globales_${format(new Date(), 'yyyy-MM-dd')}`;
           break;
-          
+
         case 'freight':
           if (!freightStats) return;
-          
-          data = [{
+          const freightData = [{
             'Nombre d\'affrètements': freightStats.totalFreight,
-            'Prix total acheté': formatCurrency(freightStats.totalPurchase),
-            'Prix total vendu': formatCurrency(freightStats.totalSelling),
-            'Part du chiffre d\'affaires': `${freightStats.revenuePercentage.toFixed(2)}%`,
-            'Marge brute totale': formatCurrency(freightStats.totalMargin),
-            'Taux de marge': `${freightStats.marginRate.toFixed(2)}%`,
-            'Part de marge': `${freightStats.marginPercentage.toFixed(2)}%`,
-            'Évolution': `${freightStats.growthRate.toFixed(2)}%`
+            'Prix total acheté': freightStats.totalPurchase,
+            'Prix total vendu': freightStats.totalSelling,
+            'Part du chiffre d\'affaires': freightStats.revenuePercentage,
+            'Marge brute totale': freightStats.totalMargin,
+            'Taux de marge': freightStats.marginRate,
+            'Part de marge': freightStats.marginPercentage,
+            'Évolution': freightStats.growthRate
           }];
-          
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(freightData), 'Statistiques');
           filename = `Statistiques_Affretement_${format(new Date(), 'yyyy-MM-dd')}`;
           break;
-          
+
         case 'transport':
           if (!transportStats) return;
-          
-          data = [{
+          const transportData = [{
             'Nombre de courses': transportStats.totalTrips,
             'Nombre total de kilomètres': Math.round(transportStats.totalKilometers),
-            'Chiffre d\'affaires transport': formatCurrency(transportStats.totalRevenue),
-            'Part du chiffre d\'affaires total': `${transportStats.revenuePercentage.toFixed(2)}%`,
-            'Évolution du CA transport': `${transportStats.revenueGrowthRate.toFixed(2)}%`,
-            'Prix moyen par kilomètre': formatCurrency(transportStats.avgPricePerKm)
+            'Chiffre d\'affaires transport': transportStats.totalRevenue,
+            'Part du chiffre d\'affaires total': transportStats.revenuePercentage,
+            'Évolution du CA transport': transportStats.revenueGrowthRate,
+            'Prix moyen par kilomètre': transportStats.avgPricePerKm
           }];
-          
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(transportData), 'Statistiques');
           filename = `Statistiques_Transport_${format(new Date(), 'yyyy-MM-dd')}`;
           break;
       }
-      
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Statistiques');
+
       XLSX.writeFile(wb, `${filename}.xlsx`);
-      
       toast.success('Export Excel réussi');
     } catch (error) {
       console.error('Error exporting to Excel:', error);
@@ -619,8 +770,35 @@ const Statistics = () => {
               <option value="month">Mois en cours</option>
               <option value="quarter">Trimestre en cours</option>
               <option value="year">Année en cours</option>
+              <option value="custom">Plage personnalisée</option>
             </select>
           </div>
+          {periodType === 'custom' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date de début
+                </label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date de fin
+                </label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </>
+          )}
 
           {/* Global tab specific filters */}
           {activeTab === 'global' && (
@@ -789,6 +967,169 @@ const Statistics = () => {
             {activeTab === 'global' && globalStats && (
               <div>
                 <h2 className="text-xl font-bold mb-6">Synthèse globale de l'activité</h2>
+
+                {/* Indicateur global litiges */}
+                <div className="mb-4">
+                  <span className="font-semibold">Clients avec au moins un litige sur la période : </span>
+                  {disputesStats.totalClientsWithDispute} / {clients.length} (
+                  {clients.length > 0 ? ((disputesStats.totalClientsWithDispute / clients.length) * 100).toFixed(1) : '0'}%)
+                </div>
+                {/* Indicateurs factures impayées */}
+                <div className="mb-4">
+                  <span className="font-semibold">Factures impayées : </span>
+                  {unpaidStats.unpaidCount} facture{unpaidStats.unpaidCount > 1 ? 's' : ''} en attente (
+                  {formatCurrency(unpaidStats.unpaidTotal)})
+                  <br />
+                  <span className="font-semibold">Factures en retard : </span>
+                  {unpaidStats.overdueCount} facture{unpaidStats.overdueCount > 1 ? 's' : ''} en retard (
+                  {formatCurrency(unpaidStats.overdueTotal)})
+                </div>
+                {/* Tableau litiges par client */}
+                {disputesStats.disputes.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-2">Litiges par client</h3>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre de litiges</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {disputesStats.disputes.map((d) => (
+                            <tr key={d.client_id}>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{d.client_nom}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{d.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+                {/* Tableau KPI par client */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold mb-2">KPI par client</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <TableHeader>Client</TableHeader>
+                          <TableHeader align="right">CA</TableHeader>
+                          <TableHeader align="right">CA/km</TableHeader>
+                          <TableHeader align="right">Courses</TableHeader>
+                          <TableHeader align="right">Marge</TableHeader>
+                          <TableHeader align="right">Taux de marge</TableHeader>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {kpiByClient.map((k) => (
+                          <tr key={k.client_id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{k.client_nom}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.ca)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.caParKm)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{k.courses}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.marge)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{k.tauxMarge.toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Graphique barres CA par client */}
+                  {kpiByClient.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="font-semibold mb-2">CA par client (barres)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ReBarChart data={kpiByClient.slice(0, 10)}>
+                          <XAxis dataKey="client_nom" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="ca" fill="#2563eb" />
+                        </ReBarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  {/* Graphique camembert CA par client */}
+                  {kpiByClient.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="font-semibold mb-2">Répartition CA par client (camembert)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RePieChart>
+                          <Pie data={kpiByClient} dataKey="ca" nameKey="client_nom" cx="50%" cy="50%" outerRadius={100} label>
+                            {kpiByClient.map((entry, index) => (
+                              <Cell key={`cell-client-${index}`} fill={["#2563eb", "#22c55e", "#f59e42", "#e11d48", "#a21caf", "#0ea5e9", "#fbbf24", "#14b8a6", "#6366f1", "#f43f5e"][index % 10]} />
+                            ))}
+                          </Pie>
+                          <Legend />
+                          <Tooltip />
+                        </RePieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+                {/* Tableau KPI par sous-traitant */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold mb-2">KPI par sous-traitant</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <TableHeader>Sous-traitant</TableHeader>
+                          <TableHeader align="right">CA</TableHeader>
+                          <TableHeader align="right">CA/km</TableHeader>
+                          <TableHeader align="right">Courses</TableHeader>
+                          <TableHeader align="right">Marge</TableHeader>
+                          <TableHeader align="right">Taux de marge</TableHeader>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {kpiByFournisseur.map((k) => (
+                          <tr key={k.fournisseur_id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{k.fournisseur_nom}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.ca)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.caParKm)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{k.courses}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{formatCurrency(k.marge)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">{k.tauxMarge.toFixed(2)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Graphique barres CA par sous-traitant */}
+                  {kpiByFournisseur.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="font-semibold mb-2">CA par sous-traitant (barres)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <ReBarChart data={kpiByFournisseur.slice(0, 10)}>
+                          <XAxis dataKey="fournisseur_nom" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="ca" fill="#22c55e" />
+                        </ReBarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                  {/* Graphique camembert CA par sous-traitant */}
+                  {kpiByFournisseur.length > 0 && (
+                    <div className="mt-6">
+                      <h4 className="font-semibold mb-2">Répartition CA par sous-traitant (camembert)</h4>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <RePieChart>
+                          <Pie data={kpiByFournisseur} dataKey="ca" nameKey="fournisseur_nom" cx="50%" cy="50%" outerRadius={100} label>
+                            {kpiByFournisseur.map((entry, index) => (
+                              <Cell key={`cell-fournisseur-${index}`} fill={["#22c55e", "#2563eb", "#f59e42", "#e11d48", "#a21caf", "#0ea5e9", "#fbbf24", "#14b8a6", "#6366f1", "#f43f5e"][index % 10]} />
+                            ))}
+                          </Pie>
+                          <Legend />
+                          <Tooltip />
+                        </RePieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">

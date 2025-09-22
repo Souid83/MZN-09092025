@@ -27,59 +27,10 @@ const ClientsVisible = () => {
   const fetchVisibleClients = async () => {
     try {
       setLoading(true);
-      
-      // Fetch clients that are either:
-      // 1. Created by the current user
-      // 2. Explicitly shared with the current user via visible_by
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*, client_contacts(*), client_accounting_contacts(*)')
-        .or(`visible_by.cs.{${user?.id}}`)
-        .order('nom');
-
-      if (error) throw error;
-      
-      // Also fetch clients where the user has created transport or freight slips
-      const { data: transportClients, error: transportError } = await supabase
-        .from('transport_slips')
-        .select('client_id')
-        .eq('created_by', user?.id);
-      
-      if (transportError) throw transportError;
-      
-      const { data: freightClients, error: freightError } = await supabase
-        .from('freight_slips')
-        .select('client_id')
-        .eq('created_by', user?.id);
-      
-      if (freightError) throw freightError;
-      
-      // Get unique client IDs from transport and freight slips
-      const clientIdsFromSlips = new Set([
-        ...transportClients.map(ts => ts.client_id),
-        ...freightClients.map(fs => fs.client_id)
-      ]);
-      
-      // Fetch these additional clients
-      if (clientIdsFromSlips.size > 0) {
-        const { data: additionalClients, error: additionalError } = await supabase
-          .from('clients')
-          .select('*, client_contacts(*), client_accounting_contacts(*)')
-          .in('id', Array.from(clientIdsFromSlips))
-          .order('nom');
-        
-        if (additionalError) throw additionalError;
-        
-        // Merge and deduplicate clients
-        const allClients = [...(data || []), ...(additionalClients || [])];
-        const uniqueClients = Array.from(
-          new Map(allClients.map(client => [client.id, client])).values()
-        );
-        
-        setClients(uniqueClients);
-      } else {
-        setClients(data || []);
-      }
+      // Utilise la fonction getClients du service pour appliquer le filtrage correct
+      const { getClients } = await import('../services/clients');
+      const clients = await getClients();
+      setClients(clients || []);
     } catch (error) {
       console.error('Error fetching visible clients:', error);
       toast.error('Erreur lors du chargement des clients');

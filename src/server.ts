@@ -1,15 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import { createClient } from '@supabase/supabase-js';
+import { authMiddleware, checkRole } from './middleware/auth';
 import aiRoutes from './routes/ai';
+import usersRoutes from './routes/users';
+import userClientsRoutes from './routes/userClients';
 
-dotenv.config();
+// Logs pour vérifier que les variables d'environnement sont bien chargées
+console.log("SUPABASE_URL:", process.env.SUPABASE_URL);
+console.log("SUPABASE_SERVICE_ROLE_KEY loaded:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("SUPABASE_JWT_SECRET loaded:", !!process.env.SUPABASE_JWT_SECRET);
+console.log("SUPABASE_ANON_KEY loaded:", !!process.env.SUPABASE_ANON_KEY);
 
 // Check required environment variables
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  throw new Error('Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY');
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing required environment variables: SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY');
 }
 
 // Initialize Supabase client
@@ -18,9 +25,18 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
+// Initialize Supabase admin client for privileged operations
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+
+// Make supabaseAdmin available to routes
+app.locals.supabaseAdmin = supabaseAdmin;
 
 // Function to get SMTP settings from Supabase
 async function getSmtpSettings() {
@@ -105,7 +121,7 @@ app.post('/api/test-smtp', async (req, res) => {
 // Send email
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { to, subject, body, attachments } = req.body;
+    const { to, subject, body, attachments, replyTo } = req.body;
 
     const transporter = await createTransporter();
     const smtpConfig = await getSmtpSettings();
@@ -128,6 +144,7 @@ app.post('/api/send-email', async (req, res) => {
       subject,
       text: body,
       html: body.replace(/\n/g, '<br>'),
+      replyTo: replyTo,
       attachments: attachments?.map((att: any) => ({
         filename: att.filename,
         content: Buffer.from(att.content, 'base64'),
@@ -140,8 +157,11 @@ app.post('/api/send-email', async (req, res) => {
       from: mailOptions.from,
       to: mailOptions.to,
       subject: mailOptions.subject,
+      replyTo: mailOptions.replyTo,
       attachmentsCount: mailOptions.attachments?.length || 0
     });
+
+    console.log('ReplyTo utilisé:', replyTo);
 
     await transporter.sendMail(mailOptions);
     console.log('✅ DEBUG: Email envoyé avec succès');
@@ -158,6 +178,9 @@ app.post('/api/send-email', async (req, res) => {
 });
 
 app.use('/api/ai', aiRoutes);
+// Use route-level Supabase adminAuth in src/routes/users.ts; remove global JWT middleware here to avoid 401 with Supabase access_token
+app.use('/api/admin', usersRoutes);
+app.use('/api/admin', userClientsRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

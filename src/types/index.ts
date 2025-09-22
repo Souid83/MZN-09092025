@@ -3,7 +3,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'exploit' | 'compta' | 'direction';
+  phone_number?: string;
+  role: 'admin' | 'exploitation' | 'facturation';
   created_at?: string;
   updated_at?: string;
   metadata?: {
@@ -75,6 +76,7 @@ export interface Client {
   accounting_contact?: AccountingContact;
   created_at?: string;
   updated_at?: string;
+  created_by?: string; // Ajout pour gestion droits édition
 }
 
 // Add CreateClientPayload type
@@ -112,6 +114,7 @@ export interface Fournisseur {
   tva_rate?: number;
   created_at?: string;
   updated_at?: string;
+  created_by?: string; // Ajout pour gestion droits édition
 }
 
 // Add CreateFournisseurPayload type
@@ -182,6 +185,8 @@ export interface TransportSlip {
   tailgate?: boolean;
   loading_instructions?: string;
   unloading_instructions?: string;
+  created_by?: string;
+  creator?: { name: string; email?: string };
 }
 
 // Add FreightSlip type
@@ -230,6 +235,8 @@ export interface FreightSlip {
   order_number?: string;
   loading_instructions?: string;
   unloading_instructions?: string;
+  created_by?: string;
+  creator?: { name: string; email?: string };
 }
 
 // Add ClientInvoice type

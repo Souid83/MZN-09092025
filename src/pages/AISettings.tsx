@@ -18,7 +18,7 @@ export default function AISettings() {
     email_prompt: '',
   });
 
-  const isSalome = user?.name === 'Salomé';
+  const isSalome = user?.name === 'Salomé' || user?.email === 'direction@mzntransport.fr';
 
   useEffect(() => {
     loadSettings();

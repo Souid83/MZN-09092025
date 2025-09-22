@@ -9,9 +9,10 @@ interface SendEmailParams {
     content: string;
     contentType: string;
   }>;
+  replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, body, attachments }: SendEmailParams): Promise<void> {
+export async function sendEmail({ to, subject, body, attachments, replyTo }: SendEmailParams): Promise<void> {
   const url = import.meta.env.DEV
     ? 'http://localhost:3000/api/send-email'
     : `${import.meta.env.VITE_API_BASE_URL}/api/send-email`;
@@ -25,7 +26,8 @@ export async function sendEmail({ to, subject, body, attachments }: SendEmailPar
       to,
       subject,
       body,
-      attachments
+      attachments,
+      replyTo
     })
   });
 

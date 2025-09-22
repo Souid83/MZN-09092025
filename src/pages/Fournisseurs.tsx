@@ -12,7 +12,10 @@ import { deleteFournisseurs } from '../services/fournisseurs';
 import { parseFournisseursExcel } from '../utils/excel-import';
 import toast from 'react-hot-toast';
 
+import { useUser } from '../contexts/UserContext';
+
 const Fournisseurs = () => {
+  const { user } = useUser();
   const [showForm, setShowForm] = useState(false);
   const [editingFournisseur, setEditingFournisseur] = useState<Fournisseur | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -305,38 +308,54 @@ const Fournisseurs = () => {
                   />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => setEditingFournisseur(fournisseur)}
-                    className="text-gray-600 hover:text-blue-600"
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  {(user?.role?.toLowerCase() === 'admin' || fournisseur.created_by === user?.id) && (
+                    <button
+                      onClick={() => setEditingFournisseur(fournisseur)}
+                      className="text-gray-600 hover:text-blue-600"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="cursor-pointer hover:text-blue-600"
-                      onClick={() => setShowDetailsModal(fournisseur)}
-                    >
-                      {fournisseur.nom}
-                    </span>
-                    <button
-                      onClick={() => setShowDetailsModal(fournisseur)}
-                      className={`${
-                        fournisseur.telephone ? 'text-blue-600' : 'text-gray-400'
-                      } hover:text-blue-800`}
-                    >
-                      <Phone size={16} />
-                    </button>
-                    <button
-                      
-                      onClick={() => setShowDetailsModal(fournisseur)}
-                      className={`${
-                        fournisseur.email ? 'text-blue-600' : 'text-gray-400'
-                      } hover:text-blue-800`}
-                    >
-                      <Mail size={16} />
-                    </button>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const isAdmin = user?.role?.toLowerCase() === 'admin';
+                        const isCreatedByOther = fournisseur.created_by && fournisseur.created_by !== user?.id;
+                        return (
+                          <span
+                            className={`cursor-pointer hover:text-blue-600 ${isAdmin && isCreatedByOther ? 'text-green-700 font-bold' : ''}`}
+                            onClick={() => setShowDetailsModal(fournisseur)}
+                          >
+                            {fournisseur.nom}
+                          </span>
+                        );
+                      })()}
+                      <button
+                        onClick={() => setShowDetailsModal(fournisseur)}
+                        className={`${
+                          fournisseur.telephone ? 'text-blue-600' : 'text-gray-400'
+                        } hover:text-blue-800`}
+                      >
+                        <Phone size={16} />
+                      </button>
+                      <button
+                        onClick={() => setShowDetailsModal(fournisseur)}
+                        className={`${
+                          fournisseur.email ? 'text-blue-600' : 'text-gray-400'
+                        } hover:text-blue-800`}
+                      >
+                        <Mail size={16} />
+                      </button>
+                    </div>
+                    {/* Mention "créé par ..." pour admin si fournisseur créé par un employé */}
+                    {user?.role?.toLowerCase() === 'admin' && fournisseur.created_by && fournisseur.created_by !== user?.id && (
+                      <div className="text-xs text-green-700 font-semibold">
+                        {/* Affiche le nom de l'employé si possible */}
+                        Créé par <span>{fournisseur.created_by}</span>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{fournisseur.contact_nom}</td>

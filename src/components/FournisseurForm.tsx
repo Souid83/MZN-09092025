@@ -212,8 +212,8 @@ const FournisseurForm: React.FC<FournisseurFormProps> = ({
                   onChange={handleVatRateChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
-                  {VAT_RATES.map(rate => (
-                    <option key={rate.value} value={rate.value.toString()}>
+                  {VAT_RATES.map((rate, idx) => (
+                    <option key={rate.value + '-' + idx} value={rate.value.toString()}>
                       {rate.label}
                     </option>
                   ))}

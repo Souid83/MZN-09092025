@@ -1,16 +1,19 @@
+import type { Request } from 'express';
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'EXPLOITATION' | 'FACTURATION';
+  role: string;
 }
 
 export interface JwtPayload {
   id: string;
   role: string;
   name: string;
+  email?: string;
 }
 
-export interface AuthRequest extends Express.Request {
+export interface AuthRequest extends Request {
   user?: User;
 }

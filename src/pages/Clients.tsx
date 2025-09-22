@@ -29,7 +29,7 @@ const Clients = () => {
     client.nom.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Fetch all users for the assign modal
+  // Fetch all users for the assign modal and for mapping created_by
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
@@ -44,6 +44,11 @@ const Clients = () => {
       toast.error('Erreur lors du chargement des utilisateurs');
     }
   };
+
+  // Charger allUsers au montage pour mapping created_by
+  React.useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleCreate = async (clientData: CreateClientPayload) => {
     try {
@@ -269,59 +274,7 @@ const Clients = () => {
         />
       )}
 
-      {showAssignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Assigner des utilisateurs</h2>
-              <button
-                onClick={() => setShowAssignModal(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            
-            <p className="mb-4 text-sm text-gray-600">
-              Sélectionnez les utilisateurs qui peuvent voir le client <strong>{showAssignModal.nom}</strong>
-            </p>
-            
-            <div className="max-h-60 overflow-y-auto mb-4">
-              {allUsers
-                .filter(u => u.role === 'exploit') // Only show exploit users
-                .map(user => (
-                  <div key={user.id} className="flex items-center p-2 hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      id={`user-${user.id}`}
-                      checked={assignedUsers.includes(user.id)}
-                      onChange={() => toggleUserAssignment(user.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                    />
-                    <label htmlFor={`user-${user.id}`} className="ml-2 text-sm text-gray-700">
-                      {user.name} <span className="text-xs text-gray-500">({user.role})</span>
-                    </label>
-                  </div>
-                ))}
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowAssignModal(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleAssignUsers}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Suppression du modal d’assignation d’utilisateurs */}
 
       <div className="bg-white rounded-lg shadow-sm">
         <table className="w-full">
@@ -336,32 +289,51 @@ const Clients = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredClients.map((client) => (
-              <tr key={client.id}>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="cursor-pointer hover:text-blue-600"
-                      onClick={() => setShowContactsModal(client.id)}
-                    >
-                      {client.nom}
-                    </span>
-                    <button
-                      onClick={() => setShowContactsModal(client.id)}
-                      className={`${
-                        client.telephone ? 'text-blue-600' : 'text-gray-400'
-                      } hover:text-blue-800 flex-shrink-0`}
-                    >
-                      <Phone size={16} />
-                    </button>
-                    <button
-                      onClick={() => setShowContactsModal(client.id)}
-                      className={`${
-                        client.email ? 'text-blue-600' : 'text-gray-400'
-                      } hover:text-blue-800 flex-shrink-0`}
-                    >
-                      <Mail size={16} />
-                    </button>
+            {filteredClients.map((client) => {
+              // DEBUG LOG
+              console.log('[Clients.tsx] client:', client, 'allUsers:', allUsers, 'user:', user);
+              return (
+                <tr key={client.id}>
+                  <td className="px-6 py-4">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const isAdmin = user?.role?.toLowerCase() === 'admin';
+                        const isCreatedByOther = client.created_by && client.created_by !== user?.id;
+                        console.log('[DEBUG-RENDER] client:', client, 'isAdmin:', isAdmin, 'isCreatedByOther:', isCreatedByOther, 'allUsers:', allUsers, 'user:', user);
+                        return (
+                          <span
+                            className={`cursor-pointer hover:text-blue-600 ${isAdmin && isCreatedByOther ? 'text-green-700 font-bold' : ''}`}
+                            onClick={() => setShowContactsModal(client.id)}
+                          >
+                            {client.nom}
+                          </span>
+                        );
+                      })()}
+                      <button
+                        onClick={() => setShowContactsModal(client.id)}
+                        className={`${
+                          client.telephone ? 'text-blue-600' : 'text-gray-400'
+                        } hover:text-blue-800 flex-shrink-0`}
+                      >
+                        <Phone size={16} />
+                      </button>
+                      <button
+                        onClick={() => setShowContactsModal(client.id)}
+                        className={`${
+                          client.email ? 'text-blue-600' : 'text-gray-400'
+                        } hover:text-blue-800 flex-shrink-0`}
+                      >
+                        <Mail size={16} />
+                      </button>
+                    </div>
+                    {/* Mention "créé par ..." pour admin si client créé par un employé */}
+                    {user?.role?.toLowerCase() === 'admin' && client.created_by && client.created_by !== user?.id && (
+                      <div className="text-xs text-green-700 font-semibold">
+                        {/* Affiche le nom de l'employé si possible */}
+                        Créé par <span>{allUsers.find(u => u.id === client.created_by)?.name || 'employé'}</span>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="px-6 py-4 break-words max-w-[300px]">
@@ -383,26 +355,21 @@ const Clients = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setEditingClient(client)}
-                      className="text-gray-600 hover:text-blue-600"
-                      title="Modifier"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    {user?.role === 'admin' && (
+                    {(user?.role?.toLowerCase() === 'admin' || client.created_by === user?.id) && (
                       <button
-                        onClick={() => handleOpenAssignModal(client)}
-                        className="text-gray-600 hover:text-green-600"
-                        title="Assigner des utilisateurs"
+                        onClick={() => setEditingClient(client)}
+                        className="text-gray-600 hover:text-blue-600"
+                        title="Modifier"
                       >
-                        <UserPlus size={16} />
+                        <Pencil size={16} />
                       </button>
                     )}
+                    {/* Suppression du bouton "Assigner des utilisateurs" */}
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

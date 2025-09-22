@@ -59,7 +59,7 @@ const FreightCMRPDF = ({ slip }: { slip: FreightSlip }) => (
       <View style={styles.twoColumns}>
         <View style={[styles.section, styles.column]}>
           <Text style={styles.sectionTitle}>Expéditeur</Text>
-          <Text>{slip.clients?.nom || 'Non spécifié'}</Text>
+          <Text>{slip.client?.nom || 'Non spécifié'}</Text>
           <Text>{slip.loading_address}</Text>
           <Text>Contact: {slip.loading_contact}</Text>
           <Text>Date: {new Date(slip.loading_date).toLocaleDateString()}</Text>
@@ -68,7 +68,7 @@ const FreightCMRPDF = ({ slip }: { slip: FreightSlip }) => (
 
         <View style={[styles.section, styles.column]}>
           <Text style={styles.sectionTitle}>Destinataire</Text>
-          <Text>{slip.fournisseurs?.nom || 'Non spécifié'}</Text>
+          <Text>{slip.fournisseur?.nom || 'Non spécifié'}</Text>
           <Text>{slip.delivery_address}</Text>
           <Text>Contact: {slip.delivery_contact}</Text>
           <Text>Date: {new Date(slip.delivery_date).toLocaleDateString()}</Text>
@@ -80,9 +80,9 @@ const FreightCMRPDF = ({ slip }: { slip: FreightSlip }) => (
         <Text style={styles.sectionTitle}>Marchandises</Text>
         <Text>Description: {slip.goods_description}</Text>
         {slip.volume && <Text>Volume: {slip.volume} m³</Text>}
-        {slip.weight && <Text>Poids: {slip.weight} kg</Text>}
+        {slip.weight && <Text>Poids: {slip.weight} KG</Text>}
         <Text>Type de véhicule: {slip.vehicle_type}</Text>
-        <Text>Mode d'échange: {slip.exchange_type}</Text>
+        <Text>ÉCHANGES PALETTES: {slip.exchange_type ? slip.exchange_type.toUpperCase() : '-'}</Text>
       </View>
 
       <View style={styles.section}>
@@ -94,6 +94,19 @@ const FreightCMRPDF = ({ slip }: { slip: FreightSlip }) => (
             <Text>{slip.observations}</Text>
           </>
         )}
+      </View>
+
+      {/* ÉCHANGES PALETTES / RÉSERVES (les réserves doivent rester vides, remplies manuellement par le chauffeur) */}
+      <View style={styles.twoColumns}>
+        <View style={[styles.section, styles.column]}>
+          <Text style={styles.sectionTitle}>RÉSERVES AU CHARGEMENT</Text>
+          <Text>{''}</Text>
+        </View>
+
+        <View style={[styles.section, styles.column]}>
+          <Text style={styles.sectionTitle}>RÉSERVES À LA LIVRAISON</Text>
+          <Text>{''}</Text>
+        </View>
       </View>
 
       <View style={styles.twoColumns}>

@@ -31,7 +31,8 @@ export async function generateCreditNoteNumber(): Promise<string> {
 }
 
 export async function getAllCreditNotes(): Promise<CreditNote[]> {
-  const { data, error } = await supabase
+  // Base query
+  let query = supabase
     .from('credit_notes')
     .select(`
       *,
@@ -39,6 +40,27 @@ export async function getAllCreditNotes(): Promise<CreditNote[]> {
       invoice:invoice_id(numero)
     `)
     .order('created_at', { ascending: false });
+
+  // Restrict to own credit notes for EXPLOITATION users
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (userId) {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      const roleUpper = userRow?.role ? String(userRow.role).toUpperCase() : '';
+      if (roleUpper === 'EXPLOIT' || roleUpper === 'EXPLOITATION') {
+        query = query.eq('created_by', userId);
+      }
+    }
+  } catch {
+    // If lookup fails, do not add filter
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Error fetching credit notes: ${error.message}`);
@@ -398,6 +420,7 @@ export async function createCreditNote(
     }
     
     // Create credit note record
+    const { data: authUser } = await supabase.auth.getUser();
     const creditNoteData = {
       numero,
       invoice_id: invoiceId || null,
@@ -408,7 +431,8 @@ export async function createCreditNote(
       montant_ttc,
       motif,
       lien_pdf: pdfPath,
-      statut: 'emis' as const
+      statut: 'emis' as const,
+      created_by: authUser.user?.id
     };
 
     const { data: creditNote, error } = await supabase

@@ -59,7 +59,7 @@ export const generateAndSaveBPA = async (slip: FreightSlip): Promise<string> => 
 export const generateAndSaveBonDeCommande = async (slip: FreightSlip): Promise<string> => {
   try {
     // Generate the PDF blob with client info instead of transporteur
-    const blob = await generatePDF({ ...slip, fournisseurs: slip.clients }, 'freight');
+    const blob = await generatePDF({ ...slip, fournisseur: slip.client }, 'freight');
     
     // Create file name
     const fileName = `BonDeCommande-${slip.number.replace(/\s/g, '')}.pdf`;

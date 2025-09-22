@@ -1,12 +1,12 @@
 import React from 'react';
-import { Settings as SettingsIcon, Mail, Users, ChevronRight, Bot, Building } from 'lucide-react';
+import { Settings as SettingsIcon, Mail, Users, ChevronRight, Bot, Building, UserCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 
 export default function Settings() {
   const { user } = useUser();
-  const isAdmin = user?.role === 'admin';
-  const isSalome = user?.email === 'salome@mzn.fr';
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
+  const isSalome = user?.name === 'Salomé' || user?.email === 'direction@mzntransport.fr';
 
   return (
     <div className="p-8 ml-64">
@@ -120,6 +120,56 @@ export default function Settings() {
                 />
               </div>
             </Link>
+          )}
+
+          {/* User Client Attributions Card - Only visible to admins */}
+          {isAdmin && (
+            <>
+              <Link
+                to="/settings/user-clients"
+                className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+                      <UserCheck size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">Attribution clients par employé</h2>
+                      <p className="text-sm text-gray-500">
+                        Gérer l'accès des employés aux clients
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight 
+                    size={20} 
+                    className="text-gray-400 group-hover:text-gray-600 transition-colors"
+                  />
+                </div>
+              </Link>
+              <Link
+                to="/settings/user-fournisseurs"
+                className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                      <Building size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">Attribution fournisseurs par employé</h2>
+                      <p className="text-sm text-gray-500">
+                        Gérer l'accès des employés aux fournisseurs
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight 
+                    size={20} 
+                    className="text-gray-400 group-hover:text-gray-600 transition-colors"
+                  />
+                </div>
+              </Link>
+            </>
           )}
         </div>
       </div>

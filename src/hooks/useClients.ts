@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllClients, createClient, updateClient } from '../services/clients';
+import { getClients, createClient, updateClient } from '../services/clients';
 import type { Client, CreateClientPayload } from '../types';
 
 export function useClients() {
@@ -10,7 +10,7 @@ export function useClients() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const clients = await getAllClients();
+        const clients = await getClients();
         setData(clients);
         setError(null);
       } catch (err) {
@@ -26,7 +26,7 @@ export function useClients() {
   const refresh = async () => {
     setLoading(true);
     try {
-      const clients = await getAllClients();
+      const clients = await getClients();
       setData(clients);
       setError(null);
     } catch (err) {

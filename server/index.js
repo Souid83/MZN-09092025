@@ -2,9 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
 app.use(cors());
@@ -13,6 +17,11 @@ app.use(express.json({ limit: '50mb' }));
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
   process.env.VITE_SUPABASE_ANON_KEY
+);
+
+const adminSupabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Create reusable transporter
@@ -99,7 +108,7 @@ app.post('/api/send-email', async (req, res) => {
       }
     }
 
-    const { to, subject, body, attachments } = req.body;
+    const { to, subject, body, attachments, replyTo } = req.body;
 
     const mailOptions = {
       from: process.env.SMTP_USER,
@@ -107,6 +116,7 @@ app.post('/api/send-email', async (req, res) => {
       subject,
       text: body,
       html: body.replace(/\n/g, '<br>'),
+      replyTo: replyTo,
       attachments: attachments?.map(att => ({
   filename: att.filename,
   content: Buffer.from(att.content, 'base64'),
@@ -115,6 +125,8 @@ app.post('/api/send-email', async (req, res) => {
 }))
 
     };
+
+    console.log('ReplyTo utilisé:', replyTo);
 
     await transporter.sendMail(mailOptions);
     res.json({ success: true });
@@ -127,6 +139,18 @@ app.post('/api/send-email', async (req, res) => {
     });
   }
 });
+
+import createAdminUsersRouter from './routes/adminUsers';
+const adminUsersRouter = createAdminUsersRouter(supabase, adminSupabase);
+app.use('/api/admin/users', adminUsersRouter);
+
+import createAdminUserClientsRouter from './routes/adminUserClients';
+const adminUserClientsRouter = createAdminUserClientsRouter(supabase);
+app.use('/api/admin/user-clients', adminUserClientsRouter);
+
+import createUserFournisseursRouter from '../src/routes/userFournisseurs';
+const userFournisseursRouter = createUserFournisseursRouter(adminSupabase);
+app.use('/api/admin/user-fournisseurs', userFournisseursRouter);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
