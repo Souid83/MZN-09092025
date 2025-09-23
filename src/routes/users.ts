@@ -36,7 +36,7 @@ const adminAuth = async (req: AuthRequest, res: Response, next: NextFunction) =>
     }
 
     // Verify Supabase JWT using Supabase's built-in method
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUser(token);
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.getUser(token)
     
     if (authError || !authUser.user) {
       return res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: 'Unauthorized' });
@@ -127,7 +127,7 @@ router.post('/users', [
     const { phone_number: phone_number_1 } = req.body;
     
     console.log('🔍 DEBUG CREATE USER - Request body:', req.body);
-    console.log('🔍 DEBUG CREATE USER - phone_number extracted:', phone_number);
+    console.log('🔍 DEBUG CREATE USER - phone_number extracted:', phone_number_1);
     const { phone_number: phone_number_2 } = req.body;
 
     // Map UI roles to DB roles
@@ -193,7 +193,7 @@ phone_number_alt: phone_number_2,
       id: authUser.user.id,
       name,
       email,
-      phone_number: phone_number,
+      phone_number: phone_number_1,
       role: dbRole,
       metadata: { email_signature }
     });
@@ -250,7 +250,7 @@ router.put('/users/:id', [
 
     
     console.log('🔍 DEBUG UPDATE USER - Request body:', req.body);
-    console.log('🔍 DEBUG UPDATE USER - phone_number extracted:', phone_number);
+    console.log('🔍 DEBUG UPDATE USER - phone_number extracted:', phone_number_3);
     const { phone_number: phone_number_4 } = req.body;
 
 
@@ -275,7 +275,7 @@ router.put('/users/:id', [
       .update({
         name,
         email,
-        phone_number: phone_number,
+        phone_number: phone_number_3,
         role: dbRole,
         metadata: { email_signature }
       })
@@ -286,7 +286,7 @@ router.put('/users/:id', [
     console.log('🔍 DEBUG UPDATE USER - Data sent to Supabase:', {
       name,
       email,
-      phone_number: phone_number,
+      phone_number: phone_number_3,
       role: dbRole,
       metadata: { email_signature }
     });
