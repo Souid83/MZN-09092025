@@ -181,9 +181,7 @@ router.post('/users', [
         name,
         email,
         phone_number: phone_number_1,
-phone_number: phone_number_2,
-
-        role: dbRole,
+ role: dbRole,
         metadata: { email_signature }
       }])
       .select()
