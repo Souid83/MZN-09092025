@@ -4,26 +4,20 @@ interface SendEmailParams {
   to: string;
   subject: string;
   body: string;
-  attachments: Array<File | { name: string; content: Blob; contentType: string }>;
+  attachments: Array<{
+    filename: string;
+    content: string;
+    contentType: string;
+  }>;
+  replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, body, attachments }: SendEmailParams): Promise<void> {
-  // Convert files to base64
-  const attachmentPromises = attachments.map(async (file) => {
-  const buffer = await file.content.arrayBuffer();
+export async function sendEmail({ to, subject, body, attachments, replyTo }: SendEmailParams): Promise<void> {
+  const url = import.meta.env.DEV
+    ? 'http://localhost:3000/api/send-email'
+    : `${import.meta.env.VITE_API_BASE_URL}/api/send-email`;
 
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  return {
-    filename: file.name,
-    content: base64,
-    contentType: file.contentType
-  };
-});
-
-
-  const processedAttachments = await Promise.all(attachmentPromises);
-
-  const response = await fetch('http://localhost:3000/api/send-email', {
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -32,13 +26,22 @@ export async function sendEmail({ to, subject, body, attachments }: SendEmailPar
       to,
       subject,
       body,
-      attachments: processedAttachments
+      attachments,
+      replyTo
     })
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Error sending email');
+  const responseText = await response.text();
+  let data;
+  
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    throw new Error(`Invalid response from server: ${responseText}`);
+  }
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || data.message || 'Error sending email');
   }
 }
 
@@ -48,7 +51,7 @@ export async function testSmtpConnection(config: {
   smtp_user: string;
   smtp_pass: string;
 }): Promise<void> {
-  const response = await fetch('http://localhost:3000/api/test-smtp', {
+  const response = await fetch('/api/test-smtp', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -56,8 +59,16 @@ export async function testSmtpConnection(config: {
     body: JSON.stringify(config)
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'SMTP connection test failed');
+  const responseText = await response.text();
+  let data;
+  
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    throw new Error(`Invalid response from server: ${responseText}`);
+  }
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || data.message || 'SMTP connection test failed');
   }
 }

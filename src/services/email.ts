@@ -51,7 +51,12 @@ export async function testSmtpConnection(config: {
   smtp_user: string;
   smtp_pass: string;
 }): Promise<void> {
-  const response = await fetch('/api/test-smtp', {
+    const url = import.meta.env.DEV
+    ? 'http://localhost:3000/api/test-smtp'
+    : `${import.meta.env.VITE_API_BASE_URL}/api/test-smtp`;
+
+  const response = await fetch(url, {
+
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
