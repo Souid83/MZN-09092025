@@ -124,11 +124,11 @@ router.post('/users', [
     }
 
     const { name, email, password, role, email_signature } = req.body;
-    const { phone_number: phone_number_1 } = req.body;
+    const { phone_number } = req.body;
     
     console.log('🔍 DEBUG CREATE USER - Request body:', req.body);
     console.log('🔍 DEBUG CREATE USER - phone_number extracted:', phone_number);
-    const { phone_number: phone_number_2 } = req.body;
+    const { phone_number } = req.body;
 
     // Map UI roles to DB roles
     const dbRole = role === 'exploitation' ? 'exploit' : role === 'facturation' ? 'compta' : role;
@@ -180,9 +180,8 @@ router.post('/users', [
         id: authUser.user.id,
         name,
         email,
-        phone_number: phone_number_1,
-phone_number_alt: phone_number_2,
-
+        phone_number: phone_number,
+        phone_number,
         role: dbRole,
         metadata: { email_signature }
       }])
@@ -246,13 +245,11 @@ router.put('/users/:id', [
 
     const { id } = req.params;
     const { name, email, role, password, email_signature } = req.body;
-    const { phone_number: phone_number_3 } = req.body;
-
+    const { phone_number } = req.body;
     
     console.log('🔍 DEBUG UPDATE USER - Request body:', req.body);
     console.log('🔍 DEBUG UPDATE USER - phone_number extracted:', phone_number);
-    const { phone_number: phone_number_4 } = req.body;
-
+    const { phone_number } = req.body;
 
     // Map UI roles to DB roles
     const dbRole = role === 'exploitation' ? 'exploit' : role === 'facturation' ? 'compta' : role;

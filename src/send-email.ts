@@ -31,7 +31,8 @@ router.post('/', async (req, res) => {
       to,
       subject,
       text: body,
-      attachments: attachments?.map(({ filename, content, contentType }) => ({
+      attachments: attachments?.map(({ filename, content, contentType }: { filename: any; content: any; contentType: any }) => ({
+
   filename,
   content: Buffer.from(content, 'base64'),
   contentType,

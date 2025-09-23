@@ -166,7 +166,7 @@ app.post('/api/send-email', async (req, res) => {
     await transporter.sendMail(mailOptions);
     console.log('✅ DEBUG: Email envoyé avec succès');
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error sending email:', error);
     console.log('❌ DEBUG: Erreur lors de l\'envoi:', error.message);
     res.status(500).json({ 
@@ -175,6 +175,7 @@ app.post('/api/send-email', async (req, res) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+
 });
 
 app.use('/api/ai', aiRoutes);
