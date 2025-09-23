@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:3000' : import.meta.env.VITE_API_BASE_URL;
 
 export interface UserClientAttribution {
   id: string;
@@ -25,7 +26,7 @@ export interface UserClientsData {
 }
 
 export async function getUserClients(userId: string): Promise<UserClientsData> {
-  const response = await fetch(`/api/admin/user-clients/${userId}`, {
+  const response = await fetch(`${API_BASE}/api/admin/user-clients/${userId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -62,7 +63,7 @@ export async function getUserClients(userId: string): Promise<UserClientsData> {
 }
 
 export async function addUserClient(userId: string, clientId: string): Promise<UserClientAttribution> {
-  const response = await fetch('/api/admin/user-clients', {
+  const response = await fetch(`${API_BASE}/api/admin/user-clients`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -84,7 +85,7 @@ export async function addUserClient(userId: string, clientId: string): Promise<U
 }
 
 export async function removeUserClient(attributionId: string): Promise<void> {
-  const response = await fetch(`/api/admin/user-clients/${attributionId}`, {
+  const response = await fetch(`${API_BASE}/api/admin/user-clients/${attributionId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,

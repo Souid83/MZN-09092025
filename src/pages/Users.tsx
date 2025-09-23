@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 import { Users as UsersIcon, Plus, Trash2, Mail, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:3000' : import.meta.env.VITE_API_BASE_URL;
 
 interface UserFormData {
   name: string;
@@ -81,7 +82,7 @@ export default function Users() {
           updateData.password = formData.password;
         }
         
-        const response = await fetch('/api/admin/users/' + editingUser, {
+        const response = await fetch(`${API_BASE}/api/admin/users/${editingUser}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export default function Users() {
         setEditingUser(null);
       } else {
         // Create new user via backend API
-        const response = await fetch('/api/admin/users', {
+        const response = await fetch(`${API_BASE}/api/admin/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -162,7 +163,7 @@ export default function Users() {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return;
 
     try {
-      const response = await fetch('/api/admin/users/' + userId, {
+      const response = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`

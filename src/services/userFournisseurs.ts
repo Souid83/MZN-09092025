@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:3000' : import.meta.env.VITE_API_BASE_URL;
 
 export interface UserFournisseurAttribution {
   id: string;
@@ -26,7 +27,7 @@ export interface UserFournisseursData {
 }
 
 export async function getUserFournisseurs(userId: string): Promise<UserFournisseursData> {
-  const response = await fetch(`/api/admin/user-fournisseurs/${userId}`, {
+  const response = await fetch(`${API_BASE}/api/admin/user-fournisseurs/${userId}`, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -47,7 +48,7 @@ export async function getUserFournisseurs(userId: string): Promise<UserFournisse
 }
 
 export async function addUserFournisseur(userId: string, fournisseurId: string): Promise<UserFournisseurAttribution> {
-  const response = await fetch('/api/admin/user-fournisseurs', {
+  const response = await fetch(`${API_BASE}/api/admin/user-fournisseurs`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -69,7 +70,7 @@ export async function addUserFournisseur(userId: string, fournisseurId: string):
 }
 
 export async function removeUserFournisseur(attributionId: string): Promise<void> {
-  const response = await fetch(`/api/admin/user-fournisseurs/${attributionId}`, {
+  const response = await fetch(`${API_BASE}/api/admin/user-fournisseurs/${attributionId}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
