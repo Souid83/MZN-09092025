@@ -64,7 +64,7 @@ const Statistics = () => {
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [selectedServiceType, setSelectedServiceType] = useState<'all' | 'transport' | 'freight'>('all');
   const [minMarginRate, setMinMarginRate] = useState<number>(0);
-  const [maxMarginRate, setMaxMarginRate] = useState<number>(100);
+  const [maxMarginRate, setMaxMarginRate] = useState<number | null>(null);
   const [selectedFournisseur, setSelectedFournisseur] = useState<string>('');
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [minPricePerKm, setMinPricePerKm] = useState<number>(0);
@@ -256,8 +256,9 @@ const Statistics = () => {
     
     // Apply margin rate filter to freight slips
     filteredFreightSlips = filteredFreightSlips.filter(slip => {
-      const marginRate = slip.margin_rate || 0;
-      return marginRate >= minMarginRate && marginRate <= maxMarginRate;
+      const marginRate = slip.margin_rate ?? 0;
+      const withinMax = maxMarginRate == null ? true : marginRate <= maxMarginRate;
+      return marginRate >= minMarginRate && withinMax;
     });
     
     // Calculate statistics globaux
@@ -279,8 +280,8 @@ const Statistics = () => {
     const totalSellingPrice = filteredFreightSlips.reduce((sum, slip) => sum + (slip.selling_price || 0), 0);
     const avgSellingPrice = totalFreightTrips > 0 ? totalSellingPrice / totalFreightTrips : 0;
     
-    const totalMargin = filteredFreightSlips.reduce((sum, slip) => sum + (slip.margin || 0), 0);
-    const avgMarginRate = totalSellingPrice > 0 ? (totalMargin / totalSellingPrice) * 100 : 0;
+    const totalMargin = filteredFreightSlips.reduce((sum, slip) => sum + ((slip.selling_price || 0) - (slip.purchase_price || 0)), 0);
+    const avgMarginRate = totalPurchasePrice > 0 ? (totalMargin / totalPurchasePrice) * 100 : 0;
     
     const transportPercentage = totalRevenue > 0 ? (totalTransportRevenue / totalRevenue) * 100 : 0;
     const freightPercentage = totalRevenue > 0 ? (totalFreightRevenue / totalRevenue) * 100 : 0;
@@ -322,6 +323,7 @@ const Statistics = () => {
           ca: 0,
           km: 0,
           courses: 0,
+          achat: 0,
           marge: 0,
           tauxMarge: 0
         };
@@ -340,18 +342,20 @@ const Statistics = () => {
           ca: 0,
           km: 0,
           courses: 0,
+          achat: 0,
           marge: 0,
           tauxMarge: 0
         };
       }
       kpiClientMap[key].ca += slip.selling_price || 0;
-      kpiClientMap[key].marge += slip.margin || 0;
+      kpiClientMap[key].achat += slip.purchase_price || 0;
+      kpiClientMap[key].marge += ((slip.selling_price || 0) - (slip.purchase_price || 0));
       kpiClientMap[key].courses += 1;
     });
     // Calcul du CA/km et taux de marge
     Object.values(kpiClientMap).forEach((k: any) => {
       k.caParKm = k.km > 0 ? k.ca / k.km : 0;
-      k.tauxMarge = k.ca > 0 ? (k.marge / k.ca) * 100 : 0;
+      k.tauxMarge = k.achat > 0 ? (k.marge / k.achat) * 100 : 0;
     });
     setKpiByClient(Object.values(kpiClientMap));
 
@@ -367,12 +371,14 @@ const Statistics = () => {
           ca: 0,
           km: 0,
           courses: 0,
+          achat: 0,
           marge: 0,
           tauxMarge: 0
         };
       }
       kpiFournisseurMap[key].ca += slip.selling_price || 0;
-      kpiFournisseurMap[key].marge += slip.margin || 0;
+      kpiFournisseurMap[key].achat += slip.purchase_price || 0;
+      kpiFournisseurMap[key].marge += ((slip.selling_price || 0) - (slip.purchase_price || 0));
       kpiFournisseurMap[key].courses += 1;
     });
     filteredTransportSlips.forEach(slip => {
@@ -385,6 +391,7 @@ const Statistics = () => {
           ca: 0,
           km: 0,
           courses: 0,
+          achat: 0,
           marge: 0,
           tauxMarge: 0
         };
@@ -395,7 +402,7 @@ const Statistics = () => {
     });
     Object.values(kpiFournisseurMap).forEach((k: any) => {
       k.caParKm = k.km > 0 ? k.ca / k.km : 0;
-      k.tauxMarge = k.ca > 0 ? (k.marge / k.ca) * 100 : 0;
+      k.tauxMarge = k.achat > 0 ? (k.marge / k.achat) * 100 : 0;
     });
     setKpiByFournisseur(Object.values(kpiFournisseurMap));
   };
@@ -415,7 +422,10 @@ const Statistics = () => {
     }
     
     // Apply margin rate filter
-    query = query.gte('margin_rate', minMarginRate).lte('margin_rate', maxMarginRate);
+    query = query.gte('margin_rate', minMarginRate);
+    if (maxMarginRate != null) {
+      query = query.lte('margin_rate', maxMarginRate);
+    }
     
     const { data: freightSlips, error: freightError } = await query;
     if (freightError) throw freightError;
@@ -432,7 +442,10 @@ const Statistics = () => {
       prevQuery = prevQuery.eq('fournisseur_id', selectedFournisseur);
     }
     
-    prevQuery = prevQuery.gte('margin_rate', minMarginRate).lte('margin_rate', maxMarginRate);
+    prevQuery = prevQuery.gte('margin_rate', minMarginRate);
+    if (maxMarginRate != null) {
+      prevQuery = prevQuery.lte('margin_rate', maxMarginRate);
+    }
     
     const { data: prevFreightSlips, error: prevFreightError } = await prevQuery;
     if (prevFreightError) throw prevFreightError;
@@ -468,11 +481,11 @@ const Statistics = () => {
     
     const revenuePercentage = totalGlobalRevenue > 0 ? (totalSelling / totalGlobalRevenue) * 100 : 0;
     
-    const totalMargin = freightSlips?.reduce((sum, slip) => sum + (slip.margin || 0), 0) || 0;
-    const marginRate = totalSelling > 0 ? (totalMargin / totalSelling) * 100 : 0;
+    const totalMargin = freightSlips?.reduce((sum, slip) => sum + ((slip.selling_price || 0) - (slip.purchase_price || 0)), 0) || 0;
+    const marginRate = totalPurchase > 0 ? (totalMargin / totalPurchase) * 100 : 0;
     
     // Calculate margin percentage of total margin (only freight slips have margin data)
-    const totalGlobalMargin = allFreightSlips?.reduce((sum, slip) => sum + (slip.margin || 0), 0) || 0;
+    const totalGlobalMargin = allFreightSlips?.reduce((sum, slip) => sum + ((slip.selling_price || 0) - (slip.purchase_price || 0)), 0) || 0;
     const marginPercentage = totalGlobalMargin > 0 ? (totalMargin / totalGlobalMargin) * 100 : 0;
     
     // Calculate growth rate compared to previous period
@@ -838,8 +851,8 @@ const Statistics = () => {
                   type="number"
                   min="0"
                   max="100"
-                  value={maxMarginRate}
-                  onChange={(e) => setMaxMarginRate(Number(e.target.value))}
+                  value={maxMarginRate ?? ''}
+                  onChange={(e) => setMaxMarginRate(e.target.value === '' ? null : Number(e.target.value))}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -887,8 +900,8 @@ const Statistics = () => {
                   type="number"
                   min="0"
                   max="100"
-                  value={maxMarginRate}
-                  onChange={(e) => setMaxMarginRate(Number(e.target.value))}
+                  value={maxMarginRate ?? ''}
+                  onChange={(e) => setMaxMarginRate(e.target.value === '' ? null : Number(e.target.value))}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
