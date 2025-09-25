@@ -464,7 +464,6 @@ const Freight = () => {
           slip={emailSlip}
           type="freight"
           onClose={() => setEmailSlip(null)}
-          clientEmail={emailSlip.client?.email}
         />
       )}
 
