@@ -18,6 +18,10 @@ interface EmailModalProps {
   clientEmail?: string;
 }
 
+function isFreightSlip(slip: TransportSlip | FreightSlip | undefined): slip is FreightSlip {
+  return !!slip && ('fournisseur_id' in slip);
+}
+
 export default function EmailModal({ 
   slip, 
   invoice, 
@@ -38,16 +42,36 @@ export default function EmailModal({
   const [attachDocument, setAttachDocument] = useState(true);
 
   useEffect(() => {
-    if (clientEmail) {
-      setEmailList([clientEmail]);
+    // Initialiser la liste des emails selon le type de document
+    let defaultEmail = '';
+    
+    if (type === 'freight' && isFreightSlip(slip)) {
+      // Pour les bordereaux d'affrètement, UNIQUEMENT l'email du fournisseur
+      // Aucun repli vers l'email du client
+      const fournisseursEmails = slip.fournisseur?.emails as string[] | undefined;
+      const fournisseurPrimary = slip.fournisseur?.email as string | undefined;
+      const firstValid = fournisseursEmails?.find(e => e && e.trim()) || '';
+      defaultEmail = (fournisseurPrimary && fournisseurPrimary.trim()) ? fournisseurPrimary : firstValid;
+    } else {
+      // Pour tous les autres types (transport, invoice), utiliser l'email du client
+      if (slip && slip.client?.email) {
+        defaultEmail = slip.client.email;
+      } else if (invoice && invoice.client?.email) {
+        defaultEmail = invoice.client.email;
+      } else if (clientEmail) {
+        defaultEmail = clientEmail;
+      }
     }
+    
+    // Initialiser la liste avec l'email trouvé (s'il existe et n'est pas vide)
+    setEmailList(defaultEmail && defaultEmail.trim() ? [defaultEmail] : []);
 
     // Set default subject based on type
     if (slip) {
       if (type === 'transport') {
         setSubject(`Bordereau de transport - ${slip.client?.nom || 'Client'} - ${slip.number}`);
       } else if (type === 'freight') {
-        setSubject(`Confirmation d'affrètement - ${slip.client?.nom || 'Client'} - ${slip.number}`);
+        setSubject(`Confirmation d'affrètement - ${isFreightSlip(slip) ? slip.fournisseur?.nom : 'Affréteur'} - ${slip.number}`);
       }
     } else if (invoice) {
       setSubject(`Facture ${invoice.numero} - ${invoice.client?.nom || 'Client'}`);
@@ -85,7 +109,7 @@ export default function EmailModal({
 
       const templates = templateData?.config?.templates || {
         transport: `Bonjour,\n\nVeuillez trouver ci-joint le bordereau de transport.\n\n{{signature}}`,
-        freight: `Bonjour,\n\nVeuillez trouver ci-joint le bordereau d'affrètement.\n\n{{signature}}`,
+        freight: `Bonjour,\n\nVeuillez trouver ci-joint la confirmation d'affrètement.\n\nMerci de bien vouloir confirmer la prise en charge de ce transport.\n\n{{signature}}`,
         invoice: `Bonjour,\n\nVeuillez trouver ci-joint la facture.\n\n{{signature}}`
       };
 
@@ -99,11 +123,23 @@ export default function EmailModal({
       body = body.replace(/{{signature}}/g, signature);
       
       if (slip) {
-        const clientName = slip.client?.nom || 'Client';
         const slipNumber = slip.number;
         const slipDate = format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr });
         
-        body = body.replace(/{{nom_client}}/g, clientName);
+        if (type === 'freight' && isFreightSlip(slip)) {
+          // Pour l'affrètement, utiliser les données du fournisseur
+          const fournisseurName = slip.fournisseur?.nom || 'Affréteur';
+          const contactName = slip.fournisseur?.contact_nom || '';
+          
+          body = body.replace(/{{nom_fournisseur}}/g, fournisseurName);
+          body = body.replace(/{{contact_fournisseur}}/g, contactName);
+          body = body.replace(/{{nom_client}}/g, fournisseurName); // Fallback pour les anciens templates
+        } else {
+          // Pour le transport, utiliser les données du client
+          const clientName = slip.client?.nom || 'Client';
+          body = body.replace(/{{nom_client}}/g, clientName);
+        }
+        
         body = body.replace(/{{numero_bordereau}}/g, slipNumber);
         body = body.replace(/{{date}}/g, slipDate);
       } else if (invoice) {
@@ -284,7 +320,7 @@ export default function EmailModal({
               {slip 
                 ? (type === 'transport' 
                   ? slip.client?.nom 
-                  : `${slip.client?.nom} (via ${slip.fournisseur?.nom})`)
+                  : (isFreightSlip(slip) ? slip.fournisseur?.nom : 'Affréteur'))
                 : invoice?.client?.nom}
             </div>
           </div>
