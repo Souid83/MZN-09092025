@@ -3,7 +3,7 @@ import { useClients } from '../hooks/useClients';
 import { useFournisseurs } from '../hooks/useFournisseurs';
 import { useUser } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
-import type { Client, TransportSlip, FreightSlip, Fournisseur, User } from '../types';
+import type { Client, TransportSlip, FreightSlip, Fournisseur, User, ClientQuote } from '../types';
 import { createFreightSlip, updateFreightSlip, createTransportSlip, updateTransportSlip } from '../services/slips';
 
 function cleanPayload(data: Record<string, any>) {
@@ -63,7 +63,7 @@ interface SlipFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
   loading?: boolean;
-  initialData?: TransportSlip | FreightSlip | null;
+  initialData?: TransportSlip | FreightSlip | Partial<TransportSlip | FreightSlip | ClientQuote> | null;
 }
 
 type LoadingTimeMode = 'fixed' | 'range';
@@ -188,6 +188,30 @@ const SlipForm: React.FC<SlipFormProps> = ({
   useEffect(() => {
     if (!initialData) return;
 
+    // Check if initialData is from a quote (has montant_ht and description properties)
+    const isFromQuote = 'montant_ht' in initialData && 'description' in initialData;
+    
+    if (isFromQuote) {
+      const quoteData = initialData as ClientQuote;
+      
+      // Map quote data to slip form data
+      setFormData(prev => ({
+        ...prev,
+        client_id: quoteData.client_id || '',
+        goods_description: quoteData.description || '',
+        price: type === 'transport' ? quoteData.montant_ht?.toString() || '' : '',
+        selling_price: type === 'freight' ? quoteData.montant_ht?.toString() || '' : '',
+        observations: `Créé à partir du devis ${quoteData.numero}`
+      }));
+      
+      if (type === 'freight') {
+        setSellingPrice(quoteData.montant_ht || 0);
+      }
+      
+      return;
+    }
+
+    // Handle existing slip data (existing logic)
     const loading_time_start = initialData.loading_time_start;
     const loading_time_end = initialData.loading_time_end;
     const loading_time = initialData.loading_time;
@@ -484,8 +508,7 @@ const SlipForm: React.FC<SlipFormProps> = ({
           await updateFreightSlip(initialData.id, cleanedData);
           onSubmit(cleanedData);
         } else {
-          await createFreightSlip(cleanedData);
-          onCancel();
+          onSubmit(cleanedData);
         }
       } else if (type === 'transport') {
         console.log('🚚 Données envoyées à updateTransportSlip/createTransportSlip :', cleanedData);
@@ -493,8 +516,7 @@ const SlipForm: React.FC<SlipFormProps> = ({
           await updateTransportSlip(initialData.id, cleanedData);
           onSubmit(cleanedData);
         } else {
-          await createTransportSlip(cleanedData);
-          onCancel();
+          onSubmit(cleanedData);
         }
       }
     } catch (error) {

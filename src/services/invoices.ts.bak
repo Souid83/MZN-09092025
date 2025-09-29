@@ -270,8 +270,7 @@ export async function createGroupedInvoice(
       return {
         id: slip.id,
         number: slip.number,
-        amount,
-        order_number: (slip as any).order_number || undefined
+        amount
       };
     });
 
@@ -501,12 +500,6 @@ export async function generateInvoicePDF(
     currentY += 6; // Reduced from 8
     doc.text(`Bordereau: ${slip.number}`, 20, currentY);
     
-    // Add client order number if it exists
-    if ((slip as any).order_number) {
-      currentY += 5;
-      doc.text(`Commande client: ${(slip as any).order_number}`, 20, currentY);
-    }
-    
     currentY += 5; // Reduced from 6
     doc.text(`Date de transport: ${format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr })}`, 20, currentY);
 
@@ -691,7 +684,7 @@ export async function generateGroupedInvoicePDF(
     currentY = Math.max(currentY, 50); // Ensure we're below logo area
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('FACTURE', pageWidth / 2, currentY, { align: 'center' });
+    doc.text('FACTURE GROUPÉE', pageWidth / 2, currentY, { align: 'center' });
     
     currentY += 8;
     doc.setFontSize(12);
@@ -761,9 +754,8 @@ export async function generateGroupedInvoicePDF(
     // Table headers
     doc.setFontSize(10);
     doc.text('Bordereau', 20, currentY);
-    doc.text('Références', 55, currentY);
-    doc.text('Date', 85, currentY);
-    doc.text('Description', 105, currentY);
+    doc.text('Date', 60, currentY);
+    doc.text('Description', 85, currentY);
     doc.text('Montant HT', 170, currentY);
     
     // Line under headers
@@ -783,9 +775,8 @@ export async function generateGroupedInvoicePDF(
         // Repeat headers on new page
         doc.setFont('helvetica', 'bold');
         doc.text('Bordereau', 20, currentY);
-        doc.text('Date', 55, currentY);
-        doc.text('Description', 75, currentY);
-        doc.text('Références', 140, currentY);
+        doc.text('Date', 60, currentY);
+        doc.text('Description', 85, currentY);
         doc.text('Montant HT', 170, currentY);
         
         // Line under headers
@@ -798,18 +789,14 @@ export async function generateGroupedInvoicePDF(
       // Slip number
       doc.text(slip.number, 20, currentY);
       
-      // Client order number (Références column)
-      const orderNumber = (slip as any).order_number || '-';
-      doc.text(orderNumber, 55, currentY);
-      
       // Slip date
       const slipDate = format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr });
-      doc.text(slipDate, 85, currentY);
+      doc.text(slipDate, 60, currentY);
       
       // Description (truncated if needed)
       const description = slip.goods_description || 'Transport';
-      const truncatedDesc = description.length > 40 ? description.substring(0, 37) + '...' : description;
-      doc.text(truncatedDesc, 105, currentY);
+      const truncatedDesc = description.length > 50 ? description.substring(0, 47) + '...' : description;
+      doc.text(truncatedDesc, 85, currentY);
       
       // Amount
       const slipAmount = type === 'transport'
@@ -917,21 +904,9 @@ export async function getAllInvoices(): Promise<ClientInvoice[]> {
   const { data, error } = await supabase
     .from('client_invoices')
     .select(`
-  *,
-  client:client_id (
-    id,
-    nom,
-    email,
-    adresse_facturation,
-    telephone,
-    client_accounting_contacts (
-      id,
-      nom,
-      email
-    )
-  )
-`)
-
+      *,
+      client:client_id(nom, email, adresse_facturation, telephone)
+    `)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -982,37 +957,6 @@ function extractRelativePathFromUrl(urlOrPath: string): string {
   }
 }
 
-// Function to download CMR PDF using signed URL
-export async function downloadCMRPDF(lienCmr: string): Promise<void> {
-  await assertNotExploitForbidden();
-  try {
-    if (!lienCmr) {
-      throw new Error('Aucun CMR disponible');
-    }
-
-    // Extract relative path from URL if needed
-    const relativePath = extractRelativePathFromUrl(lienCmr);
-
-    // Generate a signed URL for download (valid for 60 seconds)
-    const { data, error } = await supabase.storage
-      .from('documents')
-      .createSignedUrl(relativePath, 60);
-
-    if (error) {
-      throw new Error(`Erreur lors de la génération du lien de téléchargement: ${error.message}`);
-    }
-
-    if (!data?.signedUrl) {
-      throw new Error('Impossible de générer le lien de téléchargement');
-    }
-
-    // Open the signed URL in a new tab
-    window.open(data.signedUrl, '_blank');
-  } catch (error) {
-    console.error('Error downloading CMR PDF:', error);
-    throw error;
-  }
-}
 // Function to download invoice PDF directly (same system as slips)
 export async function downloadInvoicePDF(invoice: ClientInvoice): Promise<void> {
   await assertNotExploitForbidden();

@@ -374,59 +374,6 @@ export async function downloadQuotePDF(quote: ClientQuote): Promise<void> {
   }
 }
 
-export async function convertQuoteToInvoice(quote: ClientQuote): Promise<string> {
-  await assertNotExploitForbidden();
-  try {
-    // Import the invoice service functions
-    const { generateInvoiceNumber } = await import('./invoices');
-    
-    // Generate a new invoice number
-    const invoiceNumber = await generateInvoiceNumber();
-    
-    // Create invoice record
-    const { data: invoice, error: invoiceError } = await supabase
-      .from('client_invoices')
-      .insert([{
-        numero: invoiceNumber,
-        client_id: quote.client_id,
-        bordereau_id: null,
-        bordereau_type: 'transport', // Default type
-        type: 'facture_devis',
-        date_emission: format(new Date(), 'yyyy-MM-dd'),
-        montant_ht: quote.montant_ht,
-        tva: quote.tva,
-        montant_ttc: quote.montant_ttc,
-        lien_pdf: quote.lien_pdf, // Reuse the same PDF initially
-        statut: 'en_attente',
-        metadata: { quote_id: quote.id }
-      }])
-      .select()
-      .single();
-    
-    if (invoiceError) {
-      throw new Error(`Error creating invoice: ${invoiceError.message}`);
-    }
-    
-    // Update quote status and link to invoice
-    const { error: updateError } = await supabase
-      .from('client_quotes')
-      .update({
-        statut: 'facture',
-        invoice_id: invoice.id
-      })
-      .eq('id', quote.id);
-    
-    if (updateError) {
-      throw new Error(`Error updating quote: ${updateError.message}`);
-    }
-    
-    return invoice.id;
-  } catch (error) {
-    console.error('Error converting quote to invoice:', error);
-    throw error;
-  }
-}
-
 // Helper function to extract relative path from full URL
 function extractRelativePathFromUrl(urlOrPath: string): string {
   // If it's already a relative path, return as is

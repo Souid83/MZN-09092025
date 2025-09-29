@@ -10,12 +10,13 @@ interface DocumentUploaderModalProps {
   onUploadComplete: () => void;
 }
 
-type DocumentType = 'cmr' | 'client_order' | 'payment_attestation';
+type DocumentType = 'cmr' | 'client_order' | 'payment_attestation' | 'supplier_invoice';
 
 const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
   { value: 'cmr', label: 'CMR' },
   { value: 'client_order', label: 'Commande client' },
-  { value: 'payment_attestation', label: 'Attestation de paiement' }
+  { value: 'payment_attestation', label: 'Attestation de paiement' },
+  { value: 'supplier_invoice', label: 'Facture Sous traitant' }
 ];
 
 const DocumentUploaderModal: React.FC<DocumentUploaderModalProps> = ({

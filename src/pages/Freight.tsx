@@ -10,7 +10,10 @@ import DocumentUploaderModal from '../components/DocumentUploaderModal';
 import DocumentViewerModal from '../components/DocumentViewerModal';
 import ActionButtons from '../components/ActionButtons';
 import TableHeader from '../components/TableHeader';
+import SupplierInvoiceStatusModal from '../components/SupplierInvoiceStatusModal';
+import SupplierInvoiceStatusConfirmationModal from '../components/SupplierInvoiceStatusConfirmationModal';
 import { createFreightSlip, getAllFreightSlips, generatePDF } from '../services/slips';
+import { updateFreightSlipInvoiceStatus } from '../services/slips';
 import { createInvoiceFromSlip, checkInvoiceExists, createGroupedInvoice } from '../services/invoices';
 import { useClients } from '../hooks/useClients';
 import { useFournisseurs } from '../hooks/useFournisseurs';
@@ -29,6 +32,10 @@ const Freight = () => {
   const [viewingDocuments, setViewingDocuments] = useState<FreightSlip | null>(null);
   const [invoiceRefreshTrigger, setInvoiceRefreshTrigger] = useState(0);
   const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, boolean>>({});
+  const [showSupplierInvoiceStatusModal, setShowSupplierInvoiceStatusModal] = useState(false);
+  const [slipToUpdateInvoiceStatus, setSlipToUpdateInvoiceStatus] = useState<FreightSlip | null>(null);
+  const [showSupplierInvoiceConfirmation, setShowSupplierInvoiceConfirmation] = useState(false);
+  const [pendingInvoiceStatus, setPendingInvoiceStatus] = useState<{received: boolean, paid: boolean} | null>(null);
 
   const { data: clients } = useClients();
   const { data: fournisseurs } = useFournisseurs();
@@ -54,6 +61,7 @@ const Freight = () => {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedInvoiceStatus, setSelectedInvoiceStatus] = useState('');
+  const [selectedSupplierInvoiceStatus, setSelectedSupplierInvoiceStatus] = useState('');
   const [dateFilter, setDateFilter] = useState({
     start: '',
     end: ''
@@ -68,7 +76,7 @@ const Freight = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [slips, selectedClientId, selectedStatus, selectedInvoiceStatus, dateFilter]);
+  }, [slips, selectedClientId, selectedStatus, selectedInvoiceStatus, selectedSupplierInvoiceStatus, dateFilter]);
 
   useEffect(() => {
     checkInvoiceStatusesForSlips();
@@ -127,14 +135,39 @@ const Freight = () => {
       }
     }
 
+    // Filter by supplier invoice status (Fac.ST)
+    if (selectedSupplierInvoiceStatus) {
+      if (selectedSupplierInvoiceStatus === 'to_define') {
+        filtered = filtered.filter(slip =>
+          !slip.supplier_invoice_status_initialized
+        );
+      } else if (selectedSupplierInvoiceStatus === 'not_received') {
+        filtered = filtered.filter(slip =>
+          slip.supplier_invoice_status_initialized && slip.supplier_invoice_received === false
+        );
+      } else if (selectedSupplierInvoiceStatus === 'paid') {
+        filtered = filtered.filter(slip =>
+          slip.supplier_invoice_status_initialized &&
+          slip.supplier_invoice_received === true &&
+          slip.supplier_invoice_paid === true
+        );
+      } else if (selectedSupplierInvoiceStatus === 'not_paid') {
+        filtered = filtered.filter(slip =>
+          slip.supplier_invoice_status_initialized &&
+          slip.supplier_invoice_received === true &&
+          slip.supplier_invoice_paid === false
+        );
+      }
+    }
+
     // Filter by date range
     if (dateFilter.start) {
-      filtered = filtered.filter(slip => 
+      filtered = filtered.filter(slip =>
         new Date(slip.loading_date) >= new Date(dateFilter.start)
       );
     }
     if (dateFilter.end) {
-      filtered = filtered.filter(slip => 
+      filtered = filtered.filter(slip =>
         new Date(slip.loading_date) <= new Date(dateFilter.end)
       );
     }
@@ -148,6 +181,7 @@ const Freight = () => {
     setSelectedClientId('');
     setSelectedStatus('');
     setSelectedInvoiceStatus('');
+    setSelectedSupplierInvoiceStatus('');
     setDateFilter({ start: '', end: '' });
     setSelectedSlips(new Set());
   };
@@ -274,6 +308,106 @@ const Freight = () => {
     }
   };
 
+  const handleOpenSupplierInvoiceStatusModal = (slip: FreightSlip) => {
+    setSlipToUpdateInvoiceStatus(slip);
+    setShowSupplierInvoiceStatusModal(true);
+  };
+
+  const handleSupplierInvoiceStatusConfirm = (received: boolean, paid: boolean) => {
+    setPendingInvoiceStatus({ received, paid });
+    setShowSupplierInvoiceStatusModal(false);
+    setShowSupplierInvoiceConfirmation(true);
+  };
+
+  const handleSupplierInvoiceStatusSave = async () => {
+    if (!slipToUpdateInvoiceStatus || !pendingInvoiceStatus) return;
+
+    try {
+      await updateFreightSlipInvoiceStatus(
+        slipToUpdateInvoiceStatus.id,
+        pendingInvoiceStatus.received,
+        pendingInvoiceStatus.paid
+      );
+      
+      // Mettre à jour le slip dans le state local immédiatement
+      setSlips(prevSlips => 
+        prevSlips.map(slip => 
+          slip.id === slipToUpdateInvoiceStatus.id 
+            ? { 
+                ...slip, 
+                supplier_invoice_received: pendingInvoiceStatus.received,
+                supplier_invoice_paid: pendingInvoiceStatus.paid,
+                supplier_invoice_status_initialized: true
+              }
+            : slip
+        )
+      );
+      
+      toast.success('Statut facture fournisseur mis à jour avec succès');
+      setShowSupplierInvoiceConfirmation(false);
+      setSlipToUpdateInvoiceStatus(null);
+      setPendingInvoiceStatus(null);
+    } catch (error) {
+      console.error('Error updating supplier invoice status:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const handleSupplierInvoiceStatusCancel = () => {
+    setShowSupplierInvoiceStatusModal(false);
+    setShowSupplierInvoiceConfirmation(false);
+    setSlipToUpdateInvoiceStatus(null);
+    setPendingInvoiceStatus(null);
+  };
+
+  const getSupplierInvoiceStatusDisplay = (slip: FreightSlip) => {
+    // Si reçu et payé
+    if (slip.supplier_invoice_received === true && slip.supplier_invoice_paid === true) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 text-sm"
+        >
+          Reçu, Payé
+        </button>
+      );
+    }
+
+    // Si reçu mais non payé
+    if (slip.supplier_invoice_received === true && slip.supplier_invoice_paid === false) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 text-sm"
+        >
+          Reçu, Non payé
+        </button>
+      );
+    }
+
+    // Si non reçu (état par défaut ou explicitement choisi)
+    if (slip.supplier_invoice_received === false) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 text-sm"
+        >
+          Non reçu
+        </button>
+      );
+    }
+
+    // Fallback pour les cas non couverts (ne devrait jamais arriver)
+    return (
+      <button
+        onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+      >
+        État à renseigner
+      </button>
+    );
+  };
+
   const getDocumentCount = (slip: FreightSlip) => {
     return slip.documents ? Object.keys(slip.documents).length : 0;
   };
@@ -311,7 +445,7 @@ const Freight = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg p-6 shadow-sm mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Filter by client */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -334,7 +468,7 @@ const Freight = () => {
           {/* Filter by status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Statut
+              Statut livraison
             </label>
             <select
               value={selectedStatus}
@@ -346,6 +480,24 @@ const Freight = () => {
               <option value="loaded">Chargé</option>
               <option value="delivered">Livré</option>
               <option value="dispute">Litige</option>
+            </select>
+          </div>
+
+          {/* Filter by supplier invoice status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+             Statut Fac.ST
+            </label>
+            <select
+              value={selectedSupplierInvoiceStatus}
+              onChange={(e) => setSelectedSupplierInvoiceStatus(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Tous</option>
+              <option value="to_define">État à renseigner</option>
+              <option value="not_received">Facture non reçue</option>
+              <option value="paid">Facture payée</option>
+              <option value="not_paid">Facture non payée</option>
             </select>
           </div>
 
@@ -485,6 +637,24 @@ const Freight = () => {
         />
       )}
 
+      {showSupplierInvoiceStatusModal && slipToUpdateInvoiceStatus && (
+        <SupplierInvoiceStatusModal
+          onClose={handleSupplierInvoiceStatusCancel}
+          onConfirm={handleSupplierInvoiceStatusConfirm}
+          initialReceived={slipToUpdateInvoiceStatus.supplier_invoice_received || false}
+          initialPaid={slipToUpdateInvoiceStatus.supplier_invoice_paid || false}
+        />
+      )}
+
+      {showSupplierInvoiceConfirmation && pendingInvoiceStatus && (
+        <SupplierInvoiceStatusConfirmationModal
+          onClose={handleSupplierInvoiceStatusCancel}
+          onConfirm={handleSupplierInvoiceStatusSave}
+          received={pendingInvoiceStatus.received}
+          paid={pendingInvoiceStatus.paid}
+        />
+      )}
+
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -503,13 +673,13 @@ const Freight = () => {
               <TableHeader>Statut</TableHeader>
               <TableHeader>Numéro</TableHeader>
               <TableHeader>Client</TableHeader>
-              <TableHeader>Saisi par</TableHeader>
               <TableHeader>Date</TableHeader>
               <TableHeader>Affréteur</TableHeader>
               <TableHeader>ACHAT HT</TableHeader>
               <TableHeader>Vente HT</TableHeader>
               <TableHeader>MARGE €</TableHeader>
               <TableHeader>MARGE %</TableHeader>
+              <TableHeader>ETAT FAC.ST</TableHeader>
               <TableHeader align="center">Actions</TableHeader>
             </tr>
           </thead>
@@ -550,25 +720,25 @@ const Freight = () => {
                     {slip.client?.nom}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.created_by ? (userNames[slip.created_by] || '-') : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr })}
+                    {format(new Date(slip.loading_date), 'dd/MM/yy', { locale: fr })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {slip.fournisseur?.nom}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
                     {slip.purchase_price} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
                     {slip.selling_price} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.margin} €
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {Math.round(slip.margin)} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.margin_rate?.toFixed(2)}%
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {Math.round(slip.margin_rate || 0)}%
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {getSupplierInvoiceStatusDisplay(slip)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <ActionButtons

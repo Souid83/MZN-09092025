@@ -474,10 +474,7 @@ const Transport = () => {
       {showForm && (
         <SlipForm
           type="transport"
-          onSubmit={async (data) => {
-            await handleCreate(data);
-            await fetchSlips();
-          }}
+          onSubmit={handleCreate}
           onCancel={() => setShowForm(false)}
           loading={loading}
         />

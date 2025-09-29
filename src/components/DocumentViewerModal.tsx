@@ -23,7 +23,8 @@ interface DocumentViewerModalProps {
 const DOCUMENT_TYPE_LABELS: { [key: string]: string } = {
   cmr: 'CMR',
   client_order: 'Commande client',
-  payment_attestation: 'Attestation de paiement'
+  payment_attestation: 'Attestation de paiement',
+  supplier_invoice: 'Facture Sous traitant'
 };
 
 const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
