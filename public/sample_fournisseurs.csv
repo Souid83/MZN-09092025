@@ -1,6 +1,0 @@
-# LÉGENDE: Ce fichier est un modèle pour l'import de fournisseurs. La première ligne (celle-ci) est ignorée lors de l'import.
-# Champs obligatoires: nom
-# Champs séparés par des points-virgules: services_offerts, zones_couvertes
-# Champs séparés par des virgules: emails
-nom,contact_nom,email,telephone,adresse,siret,numero_tva,services_offerts,zones_couvertes,conditions_paiement,tva_rate,comptable_nom,comptable_email,comptable_telephone,pays,emails
-Transport Express,Marie Martin,contact@transport-express.com,0123456789,"123 Rue du Transport, 75001 Paris",12345678900012,FR12345678900,"Transport routier;Transport frigorifique;Livraison express","Île-de-France;Normandie;Hauts-de-France",30 jours fin de mois,20,Dupont,comptabilite@transport-express.com,0123456789,France,contact@transport-express.com,info@transport-express.com
