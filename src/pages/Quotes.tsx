@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { FileCheck, Plus, X, Search, Mail, Receipt, Download, Check, Clock, Ban } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { generateQuoteNumber, getAllQuotes, updateQuoteStatus, generateQuotePDF, downloadQuotePDF, convertQuoteToInvoice } from '../services/quotes';
+import { generateQuoteNumber, getAllQuotes, updateQuoteStatus, generateQuotePDF, downloadQuotePDF } from '../services/quotes';
 import { useClients } from '../hooks/useClients';
 import { supabase } from '../lib/supabase';
 import type { ClientQuote, Client } from '../types';
 import toast from 'react-hot-toast';
 import EmailModal from '../components/EmailModal';
+import SlipForm from '../components/SlipForm';
 import { useUser } from '../contexts/UserContext';
 
 interface QuoteFormData {
@@ -25,6 +26,10 @@ export default function Quotes() {
   const [showForm, setShowForm] = useState(false);
   const [creatingQuote, setCreatingQuote] = useState(false);
   const [emailQuote, setEmailQuote] = useState<ClientQuote | null>(null);
+  const [showConvertModal, setShowConvertModal] = useState<ClientQuote | null>(null);
+  const [showSlipForm, setShowSlipForm] = useState(false);
+  const [slipFormType, setSlipFormType] = useState<'transport' | 'freight'>('transport');
+  const [initialSlipData, setInitialSlipData] = useState<any>(null);
   const { data: clients } = useClients();
 
   const [formData, setFormData] = useState<QuoteFormData>({
@@ -110,6 +115,15 @@ export default function Quotes() {
   };
 
   const handleStatusChange = async (quoteId: string, newStatus: 'en_attente' | 'accepte' | 'refuse') => {
+    // If status is changing to 'accepte', show convert modal instead of directly updating
+    if (newStatus === 'accepte') {
+      const quote = quotes.find(q => q.id === quoteId);
+      if (quote) {
+        setShowConvertModal(quote);
+        return;
+      }
+    }
+
     try {
       await updateQuoteStatus(quoteId, newStatus);
       setQuotes(quotes.map(quote => 
@@ -122,6 +136,69 @@ export default function Quotes() {
       console.error('Error updating quote status:', error);
       toast.error('Erreur lors de la mise à jour du statut');
     }
+  };
+
+  const handleConvertToSlip = (type: 'transport' | 'freight') => {
+    if (!showConvertModal) return;
+
+    // Map quote data to slip data structure
+    const slipData = {
+      client_id: showConvertModal.client_id,
+      loading_date: format(new Date(), 'yyyy-MM-dd'),
+      delivery_date: format(new Date(), 'yyyy-MM-dd'),
+      loading_time: '09:00',
+      delivery_time: '17:00',
+      loading_address: showConvertModal.client?.adresse_facturation || '',
+      delivery_address: showConvertModal.client?.adresse_facturation || '',
+      loading_contact: '',
+      delivery_contact: '',
+      goods_description: showConvertModal.description,
+      volume: '',
+      weight: '',
+      vehicle_type: 'T1',
+      exchange_type: 'Non',
+      instructions: 'BIEN ARRIMER LA MARCHANDISE',
+      payment_method: 'Virement 30j FDM',
+      observations: `Créé à partir du devis ${showConvertModal.numero}`,
+      photo_required: true,
+      price: type === 'transport' ? showConvertModal.montant_ht : 0,
+      selling_price: type === 'freight' ? showConvertModal.montant_ht : 0,
+      purchase_price: type === 'freight' ? 0 : undefined,
+      commercial_id: type === 'freight' ? '' : undefined,
+      fournisseur_id: type === 'freight' ? '' : undefined,
+      order_number: type === 'transport' ? '' : undefined
+    };
+
+    setInitialSlipData(slipData);
+    setSlipFormType(type);
+    setShowSlipForm(true);
+    setShowConvertModal(null);
+  };
+
+  const handleSlipFormSubmit = async (data: any) => {
+    try {
+      // Update quote status to 'accepte' after successful slip creation
+      if (showConvertModal) {
+        await updateQuoteStatus(showConvertModal.id, 'accepte');
+        setQuotes(quotes.map(quote => 
+          quote.id === showConvertModal.id 
+            ? { ...quote, statut: 'accepte' }
+            : quote
+        ));
+        toast.success('Devis accepté et bordereau créé avec succès');
+      }
+      setShowSlipForm(false);
+      setInitialSlipData(null);
+    } catch (error) {
+      console.error('Error updating quote status:', error);
+      toast.error('Erreur lors de la mise à jour du devis');
+    }
+  };
+
+  const handleSlipFormCancel = () => {
+    setShowSlipForm(false);
+    setInitialSlipData(null);
+    setShowConvertModal(null);
   };
 
   const handleDownloadPDF = async (quote: ClientQuote) => {
@@ -264,22 +341,6 @@ export default function Quotes() {
       toast.error('Erreur lors de la création du devis');
     } finally {
       setCreatingQuote(false);
-    }
-  };
-
-  const handleConvertToInvoice = async (quote: ClientQuote) => {
-    try {
-      await convertQuoteToInvoice(quote);
-      
-      // Mettre à jour le statut du devis localement
-      setQuotes(prevQuotes => prevQuotes.map(q => 
-        q.id === quote.id ? { ...q, statut: 'facture' } : q
-      ));
-      
-      toast.success('Devis converti en facture avec succès');
-    } catch (error) {
-      console.error('Error converting quote to invoice:', error);
-      toast.error('Erreur lors de la conversion du devis en facture');
     }
   };
 
@@ -578,6 +639,67 @@ export default function Quotes() {
         />
       )}
 
+      {/* Convert to Slip Modal */}
+      {showConvertModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Transformer le devis en bordereau</h2>
+              <button
+                onClick={() => setShowConvertModal(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Le devis <strong>{showConvertModal.numero}</strong> va être accepté et transformé en bordereau.
+                Choisissez le type de bordereau à créer :
+              </p>
+
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={() => handleConvertToSlip('transport')}
+                  className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 text-left"
+                >
+                  <div className="font-medium text-blue-800">Bordereau de transport</div>
+                  <div className="text-sm text-blue-600">Transport direct avec nos véhicules</div>
+                </button>
+
+                <button
+                  onClick={() => handleConvertToSlip('freight')}
+                  className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 text-left"
+                >
+                  <div className="font-medium text-green-800">Bordereau d'affrètement</div>
+                  <div className="text-sm text-green-600">Transport via sous-traitant</div>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                onClick={() => setShowConvertModal(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slip Form Modal */}
+      {showSlipForm && (
+        <SlipForm
+          type={slipFormType}
+          onSubmit={handleSlipFormSubmit}
+          onCancel={handleSlipFormCancel}
+          initialData={initialSlipData}
+        />
+      )}
+
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -661,15 +783,6 @@ export default function Quotes() {
                     >
                       <Mail size={18} />
                     </button>
-                    {!isExploit && (quote.statut === 'accepte' || quote.statut === 'en_attente') && !quote.invoice_id && (
-                      <button
-                        onClick={() => handleConvertToInvoice(quote)}
-                        className="text-purple-600 hover:text-purple-800"
-                        title="Convertir en facture"
-                      >
-                        <Receipt size={18} />
-                      </button>
-                    )}
                   </div>
                 </td>
               </tr>

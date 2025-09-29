@@ -10,7 +10,10 @@ import DocumentUploaderModal from '../components/DocumentUploaderModal';
 import DocumentViewerModal from '../components/DocumentViewerModal';
 import ActionButtons from '../components/ActionButtons';
 import TableHeader from '../components/TableHeader';
+import SupplierInvoiceStatusModal from '../components/SupplierInvoiceStatusModal';
+import SupplierInvoiceStatusConfirmationModal from '../components/SupplierInvoiceStatusConfirmationModal';
 import { createFreightSlip, getAllFreightSlips, generatePDF } from '../services/slips';
+import { updateFreightSlipInvoiceStatus } from '../services/slips';
 import { createInvoiceFromSlip, checkInvoiceExists, createGroupedInvoice } from '../services/invoices';
 import { useClients } from '../hooks/useClients';
 import { useFournisseurs } from '../hooks/useFournisseurs';
@@ -29,6 +32,10 @@ const Freight = () => {
   const [viewingDocuments, setViewingDocuments] = useState<FreightSlip | null>(null);
   const [invoiceRefreshTrigger, setInvoiceRefreshTrigger] = useState(0);
   const [invoiceStatuses, setInvoiceStatuses] = useState<Record<string, boolean>>({});
+  const [showSupplierInvoiceStatusModal, setShowSupplierInvoiceStatusModal] = useState(false);
+  const [slipToUpdateInvoiceStatus, setSlipToUpdateInvoiceStatus] = useState<FreightSlip | null>(null);
+  const [showSupplierInvoiceConfirmation, setShowSupplierInvoiceConfirmation] = useState(false);
+  const [pendingInvoiceStatus, setPendingInvoiceStatus] = useState<{received: boolean, paid: boolean} | null>(null);
 
   const { data: clients } = useClients();
   const { data: fournisseurs } = useFournisseurs();
@@ -274,6 +281,106 @@ const Freight = () => {
     }
   };
 
+  const handleOpenSupplierInvoiceStatusModal = (slip: FreightSlip) => {
+    setSlipToUpdateInvoiceStatus(slip);
+    setShowSupplierInvoiceStatusModal(true);
+  };
+
+  const handleSupplierInvoiceStatusConfirm = (received: boolean, paid: boolean) => {
+    setPendingInvoiceStatus({ received, paid });
+    setShowSupplierInvoiceStatusModal(false);
+    setShowSupplierInvoiceConfirmation(true);
+  };
+
+  const handleSupplierInvoiceStatusSave = async () => {
+    if (!slipToUpdateInvoiceStatus || !pendingInvoiceStatus) return;
+
+    try {
+      await updateFreightSlipInvoiceStatus(
+        slipToUpdateInvoiceStatus.id,
+        pendingInvoiceStatus.received,
+        pendingInvoiceStatus.paid
+      );
+      
+      // Mettre à jour le slip dans le state local immédiatement
+      setSlips(prevSlips => 
+        prevSlips.map(slip => 
+          slip.id === slipToUpdateInvoiceStatus.id 
+            ? { 
+                ...slip, 
+                supplier_invoice_received: pendingInvoiceStatus.received,
+                supplier_invoice_paid: pendingInvoiceStatus.paid,
+                supplier_invoice_status_initialized: true
+              }
+            : slip
+        )
+      );
+      
+      toast.success('Statut facture fournisseur mis à jour avec succès');
+      setShowSupplierInvoiceConfirmation(false);
+      setSlipToUpdateInvoiceStatus(null);
+      setPendingInvoiceStatus(null);
+    } catch (error) {
+      console.error('Error updating supplier invoice status:', error);
+      toast.error('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const handleSupplierInvoiceStatusCancel = () => {
+    setShowSupplierInvoiceStatusModal(false);
+    setShowSupplierInvoiceConfirmation(false);
+    setSlipToUpdateInvoiceStatus(null);
+    setPendingInvoiceStatus(null);
+  };
+
+  const getSupplierInvoiceStatusDisplay = (slip: FreightSlip) => {
+    // Si reçu et payé
+    if (slip.supplier_invoice_received === true && slip.supplier_invoice_paid === true) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 text-sm"
+        >
+          Reçu, Payé
+        </button>
+      );
+    }
+
+    // Si reçu mais non payé
+    if (slip.supplier_invoice_received === true && slip.supplier_invoice_paid === false) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 text-sm"
+        >
+          Reçu, Non payé
+        </button>
+      );
+    }
+
+    // Si non reçu (état par défaut ou explicitement choisi)
+    if (slip.supplier_invoice_received === false) {
+      return (
+        <button
+          onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+          className="px-3 py-1 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 text-sm"
+        >
+          Non reçu
+        </button>
+      );
+    }
+
+    // Fallback pour les cas non couverts (ne devrait jamais arriver)
+    return (
+      <button
+        onClick={() => handleOpenSupplierInvoiceStatusModal(slip)}
+        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+      >
+        Statut inconnu
+      </button>
+    );
+  };
+
   const getDocumentCount = (slip: FreightSlip) => {
     return slip.documents ? Object.keys(slip.documents).length : 0;
   };
@@ -485,6 +592,24 @@ const Freight = () => {
         />
       )}
 
+      {showSupplierInvoiceStatusModal && slipToUpdateInvoiceStatus && (
+        <SupplierInvoiceStatusModal
+          onClose={handleSupplierInvoiceStatusCancel}
+          onConfirm={handleSupplierInvoiceStatusConfirm}
+          initialReceived={slipToUpdateInvoiceStatus.supplier_invoice_received || false}
+          initialPaid={slipToUpdateInvoiceStatus.supplier_invoice_paid || false}
+        />
+      )}
+
+      {showSupplierInvoiceConfirmation && pendingInvoiceStatus && (
+        <SupplierInvoiceStatusConfirmationModal
+          onClose={handleSupplierInvoiceStatusCancel}
+          onConfirm={handleSupplierInvoiceStatusSave}
+          received={pendingInvoiceStatus.received}
+          paid={pendingInvoiceStatus.paid}
+        />
+      )}
+
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -503,13 +628,13 @@ const Freight = () => {
               <TableHeader>Statut</TableHeader>
               <TableHeader>Numéro</TableHeader>
               <TableHeader>Client</TableHeader>
-              <TableHeader>Saisi par</TableHeader>
               <TableHeader>Date</TableHeader>
               <TableHeader>Affréteur</TableHeader>
               <TableHeader>ACHAT HT</TableHeader>
               <TableHeader>Vente HT</TableHeader>
               <TableHeader>MARGE €</TableHeader>
               <TableHeader>MARGE %</TableHeader>
+              <TableHeader>ETAT FAC.ST</TableHeader>
               <TableHeader align="center">Actions</TableHeader>
             </tr>
           </thead>
@@ -550,25 +675,25 @@ const Freight = () => {
                     {slip.client?.nom}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.created_by ? (userNames[slip.created_by] || '-') : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {format(new Date(slip.loading_date), 'dd/MM/yyyy', { locale: fr })}
+                    {format(new Date(slip.loading_date), 'dd/MM/yy', { locale: fr })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {slip.fournisseur?.nom}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
                     {slip.purchase_price} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
                     {slip.selling_price} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.margin} €
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {Math.round(slip.margin)} €
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {slip.margin_rate?.toFixed(2)}%
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {Math.round(slip.margin_rate || 0)}%
+                  </td>
+                  <td className="px-3 py-4 whitespace-nowrap text-center">
+                    {getSupplierInvoiceStatusDisplay(slip)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <ActionButtons

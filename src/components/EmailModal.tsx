@@ -40,31 +40,43 @@ export default function EmailModal({
   const [aiMode, setAIMode] = useState<'generate' | 'improve'>('generate');
   const [loadingTemplate, setLoadingTemplate] = useState(true);
   const [attachDocument, setAttachDocument] = useState(true);
+  const [attachCMR, setAttachCMR] = useState(false);
 
   useEffect(() => {
     // Initialiser la liste des emails selon le type de document
     let defaultEmail = '';
-    
-    if (type === 'freight' && isFreightSlip(slip)) {
+
+    if (type === 'invoice' && invoice) {
+      // Priorité : email comptabilité -> email principal -> vide
+      const accountingEmail = invoice.client?.client_accounting_contacts?.email;
+      if (accountingEmail && accountingEmail.trim()) {
+        defaultEmail = accountingEmail;
+      } else if (invoice.client?.email && invoice.client.email.trim()) {
+        defaultEmail = invoice.client.email;
+      } else {
+        defaultEmail = '';
+      }
+    } else if (type === 'transport' && slip) {
+      // Pour le transport, uniquement l'email du client
+      defaultEmail = slip.client?.email?.trim() || '';
+    } else if (type === 'freight' && isFreightSlip(slip)) {
       // Pour les bordereaux d'affrètement, UNIQUEMENT l'email du fournisseur
       // Aucun repli vers l'email du client
       const fournisseursEmails = slip.fournisseur?.emails as string[] | undefined;
       const fournisseurPrimary = slip.fournisseur?.email as string | undefined;
       const firstValid = fournisseursEmails?.find(e => e && e.trim()) || '';
       defaultEmail = (fournisseurPrimary && fournisseurPrimary.trim()) ? fournisseurPrimary : firstValid;
-    } else {
-      // Pour tous les autres types (transport, invoice), utiliser l'email du client
-      if (slip && slip.client?.email) {
-        defaultEmail = slip.client.email;
-      } else if (invoice && invoice.client?.email) {
-        defaultEmail = invoice.client.email;
-      } else if (clientEmail) {
-        defaultEmail = clientEmail;
-      }
     }
     
     // Initialiser la liste avec l'email trouvé (s'il existe et n'est pas vide)
     setEmailList(defaultEmail && defaultEmail.trim() ? [defaultEmail] : []);
+
+    // Initialize CMR attachment state for invoices
+    if (type === 'invoice' && invoice?.lien_cmr) {
+      setAttachCMR(true);
+    } else {
+      setAttachCMR(false);
+    }
 
     // Set default subject based on type
     if (slip) {
@@ -238,6 +250,65 @@ export default function EmailModal({
           content: pdfBase64,
           contentType: 'application/pdf'
         });
+      }
+
+      // Add CMR attachment if requested and available
+      if (attachCMR && type === 'invoice' && invoice?.lien_cmr) {
+        try {
+          // Extract relative path from URL if needed
+          const extractRelativePathFromUrl = (urlOrPath: string): string => {
+            if (!urlOrPath.startsWith('http')) {
+              return urlOrPath;
+            }
+            
+            try {
+              const url = new URL(urlOrPath);
+              const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/documents\/(.+)$/);
+              if (pathMatch) {
+                return pathMatch[1];
+              }
+              
+              const documentsIndex = url.pathname.indexOf('documents/');
+              if (documentsIndex !== -1) {
+                return url.pathname.substring(documentsIndex + 'documents/'.length);
+              }
+              
+              throw new Error('Unable to extract relative path from URL');
+            } catch (error) {
+              console.error('Error parsing URL:', error);
+              throw new Error('Invalid URL format');
+            }
+          };
+
+          const relativePath = extractRelativePathFromUrl(invoice.lien_cmr);
+          
+          // Download CMR from storage
+          const { data: cmrData, error: cmrError } = await supabase.storage
+            .from('documents')
+            .download(relativePath);
+          
+          if (cmrError) {
+            console.warn('Could not download CMR for email attachment:', cmrError);
+          } else if (cmrData) {
+            const cmrBase64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const base64 = reader.result as string;
+                resolve(base64.split(',')[1]);
+              };
+              reader.readAsDataURL(cmrData);
+            });
+
+            attachments.push({
+              filename: `cmr_${invoice.numero}.pdf`,
+              content: cmrBase64,
+              contentType: 'application/pdf'
+            });
+          }
+        } catch (error) {
+          console.warn('Could not attach CMR to email:', error);
+          // Continue without CMR - don't block email sending
+        }
       }
 
       const additionalFilesPromises = additionalFiles.map(async (file) => {
@@ -445,6 +516,25 @@ export default function EmailModal({
                 </label>
               </div>
             </div>
+            {type === 'invoice' && invoice?.lien_cmr && (
+              <div className="p-3 bg-blue-50 rounded-md mb-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm">
+                    <span className="font-medium">CMR associé : </span>
+                    Document de transport
+                  </div>
+                  <label className="flex items-center space-x-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={attachCMR}
+                      onChange={(e) => setAttachCMR(e.target.checked)}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span>Joindre le CMR</span>
+                  </label>
+                </div>
+              </div>
+            )}
             <input
               type="file"
               onChange={(e) => {

@@ -3,6 +3,7 @@ import { Receipt, Download, Eye, Check, Clock, Plus, X, Search, Mail, ArrowDownL
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { getAllInvoices, updateInvoiceStatus, generateInvoiceNumber, generateInvoicePDF, downloadInvoicePDF } from '../services/invoices';
+import { downloadCMRPDF } from '../services/invoices';
 import { downloadCreditNotePDF } from '../services/creditNotes';
 import { useClients } from '../hooks/useClients';
 import { supabase } from '../lib/supabase';
@@ -182,7 +183,10 @@ export default function Invoices() {
 
   const handleViewCMR = (invoice: ClientInvoice) => {
     if (invoice.lien_cmr) {
-      window.open(invoice.lien_cmr, '_blank');
+      downloadCMRPDF(invoice.lien_cmr).catch(error => {
+        console.error('Error viewing CMR:', error);
+        toast.error('Erreur lors de l\'ouverture du CMR');
+      });
     } else {
       toast.error('Aucun CMR disponible pour cette facture');
     }

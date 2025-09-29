@@ -73,7 +73,7 @@ export interface Client {
   numero_tva?: string;
   opening_hours?: WeekSchedule;
   contacts?: Contact[];
-  accounting_contact?: AccountingContact;
+  client_accounting_contacts?: AccountingContact;
   created_at?: string;
   updated_at?: string;
   created_by?: string; // Ajout pour gestion droits édition
@@ -94,7 +94,7 @@ export interface CreateClientPayload {
   numero_tva?: string;
   opening_hours?: WeekSchedule;
   contacts?: Contact[];
-  accounting_contact?: AccountingContact;
+  client_accounting_contacts?: AccountingContact[];
 }
 
 // Add Fournisseur type
@@ -237,6 +237,9 @@ export interface FreightSlip {
   unloading_instructions?: string;
   created_by?: string;
   creator?: { name: string; email?: string };
+  supplier_invoice_received?: boolean;
+  supplier_invoice_paid?: boolean;
+  supplier_invoice_status_initialized?: boolean;
 }
 
 // Add ClientInvoice type
@@ -262,6 +265,7 @@ export interface ClientInvoice {
       id: string;
       number: string;
       amount: number;
+      order_number?: string;
     }>;
     [key: string]: any;
   };

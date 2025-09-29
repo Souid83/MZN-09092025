@@ -102,7 +102,10 @@ export async function createFreightSlip(data: Omit<FreightSlip, 'id' | 'number' 
       tailgate,
       created_at,
       updated_at,
-      created_by
+      created_by,
+      supplier_invoice_received,
+      supplier_invoice_paid,
+      supplier_invoice_status_initialized
     `)
     .single();
 
@@ -225,7 +228,10 @@ export async function getAllFreightSlips(startDate?: string, endDate?: string): 
       tailgate,
       created_at,
       updated_at,
-      created_by
+      created_by,
+      supplier_invoice_received,
+      supplier_invoice_paid,
+      supplier_invoice_status_initialized
     `)
     .order('created_at', { ascending: false });
 
@@ -487,6 +493,26 @@ export async function updateSlipStatus(
 
   if (error) {
     throw new Error(`Error updating slip status: ${error.message}`);
+  }
+}
+
+export async function updateFreightSlipInvoiceStatus(
+  id: string,
+  supplier_invoice_received: boolean,
+  supplier_invoice_paid: boolean,
+  supplier_invoice_status_initialized: boolean = true
+): Promise<void> {
+  const { error } = await supabase
+    .from('freight_slips')
+    .update({ 
+      supplier_invoice_received,
+      supplier_invoice_paid,
+      supplier_invoice_status_initialized
+    })
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(`Error updating freight slip invoice status: ${error.message}`);
   }
 }
 
